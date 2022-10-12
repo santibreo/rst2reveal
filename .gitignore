@@ -1,0 +1,4 @@
+**__pycache__/
+rst2reveal.egg-info/
+dist/
+build/
