@@ -1,120 +1,102 @@
 import os
 from docutils import nodes
 from docutils.parsers.rst import directives
-try:
-    from matplotlib.pylab import *
-except:
-    pass
+
+from . import HAS_MATPLOTLIB, STATIC_PATH
+
+
 
 def plot_directive(name, arguments, options, content, lineno,
                        content_offset, block_text, state, state_machine):
 
     # Check if matplotlib is installed
-    try:
-        import matplotlib.pylab 
-    except:
-        print('Warning: matplotlib is not installed on your system. Plots will not be generated.')
+    if not HAS_MATPLOTLIB:
         return []
-        
+
+    from . import plt
+    from matplotlib import tempfile
+
     # Process the options
-    if 'width' in options.keys():
-        width = 'width='+options['width']
-    else:
-        width = 'width=90%'
-    if 'align' in options.keys():
-        align = options['align']
-    else:
-        align = 'center'
-#    if align in ['left', 'right']:
-#        RevealTranslator.inline_lists = True # how to access this?
-    if 'alpha' in options.keys():
-        alpha = options['alpha']
-    else:
-        alpha = '0.0'
+    width = options.get('width', '75%')
+    if not width.endswith('%'):
+        print('Warning: Width must be a percentage, using: 80%')
+        width = '80%'
+    align = options.get('align', 'center')
+    # Alpha
     try:
-        alpha = float(alpha)
-        if alpha <0.0:
-            alpha = 0.0
-        elif alpha > 1.0:
-            alpha = 1.0
-    except:
-        print('Error: alpha must be a floating value between 0.0 and 1.0')
-        return []
+        alpha = options.get('alpha', 0)
+        alpha = min(1, max(0, float(alpha)))
+    except ValueError:
+        print('Warning: alpha must be a floating value between 0.0 and 1.0')
+        alpha = 0
+    try:
+        xkcd_magnitude = int(options.get('xkcd', 0))
+    except ValueError:
+        wrong = options['xkcd']
+        print(f'Warning: the argument to :xkcd: must be a int, not {wrong!r}')
+        xkcd_magnitude = 1
+    # XKCD
+    #if 'invert' in options.keys():
+    #    plt.rcParams['figure.facecolor'] = 'b'
+    #    plt.rcParams['figure.edgecolor'] = 'b'
+    #    plt.rcParams['text.color'] = 'w'
+    #    plt.rcParams['axes.edgecolor'] = 'w'
+    #    plt.rcParams['axes.labelcolor'] = 'w'
+    #    plt.rcParams['xtick.color'] = 'w'
+    #    plt.rcParams['ytick.color'] = 'w'
+    #    plt.rcParams['legend.frameon'] = False
+    #    if not 'alpha' in options.keys(): # not specified, so default = 0.0
+    #        alpha = 1
 
-    if 'invert' in options.keys():
-        import matplotlib
-        matplotlib.rcParams['figure.facecolor'] = 'b'
-        matplotlib.rcParams['figure.edgecolor'] = 'b'
-        matplotlib.rcParams['text.color'] = 'w'
-        matplotlib.rcParams['axes.edgecolor'] = 'w'
-        matplotlib.rcParams['axes.labelcolor'] = 'w'
-        matplotlib.rcParams['xtick.color'] = 'w'
-        matplotlib.rcParams['ytick.color'] = 'w'
-        matplotlib.rcParams['legend.frameon'] = False
-        if not 'alpha' in options.keys(): # not specified, so default = 0.0
-            alpha = 0.0
-    
-    
     # Execute the code line by line
-    try:
-        fig = figure()
-        for line in content:
-            exec(line)
-        # Set transparency
-        fig.patch.set_alpha(alpha)
-        for ax in fig.axes:
-            ax.patch.set_alpha(alpha)
-#            if ax.get_legend() is not None:
-#                for child in ax.get_legend().get_children():
-#                    child.set_alpha(alpha)
-        # Call XKCDify
-        if 'xkcd' in options.keys():
-            if options['xkcd'] != '':
-                try:
-                    mag = float(options['xkcd'])
-                except:
-                    print('Error: the argument to :xkcd: must be a float.')
-                    return []
-            else:
-                mag=1.5
-            from XKCDify import XKCDify
-            for ax in fig.axes:
-                XKCDify(ax, mag=mag, 
-                        bgcolor = 'k' if 'invert' in options.keys() else 'w',
-                        forecolor = 'w' if 'invert' in options.keys() else 'k',
-                        xaxis_arrow='+', yaxis_arrow='+',
-                        ax_extend= 0.05,
-                        expand_axes=(len(fig.axes) == 1))
-        # Save the figure in a temporary SVG file
-        fig.savefig('__temp.svg', dpi=600, edgecolor='w')
-        # Optionally save the figure
-        if 'save' in options.keys():
-            fig.savefig(options['save'], dpi=600)
-        
-    except Exception as e:
-        print('Error while generating the figure:')
-        for line in content:
-            print('    ', line)
-        print(e)
-        return []
+    if xkcd_magnitude > 0:
+        with plt.xkcd(xkcd_magnitude):
+            fig, ax = plt.subplots()
+    else:
+        fig, ax = plt.subplots()
 
-        
+    for line in content:
+        try:
+            exec(line)
+        except Exception as e:
+            print('Error while executing matplotlib code:')
+            print('    ', line)
+            print(e)
+            return []
+    # Set dimensions
+    #box_width, box_height = fig.get_size_inches() * 100
+    box_width, box_height = 430, 350
+    # Set transparency
+    fig.patch.set_alpha(alpha)
+    ax.patch.set_alpha(alpha)
+    # Save the figure in a temporary SVG file
+    temp_fd, temp_filepath = tempfile.mkstemp(
+        suffix=".svg", dir=STATIC_PATH, text=True
+    )
+    os.close(temp_fd)
+    fig.savefig(temp_filepath, dpi=600, transparent=True)
+    # Optionally save the figure
+    if 'save' in options.keys():
+        fig.savefig(options['save'], dpi=600,  transparent=True)
+
     # Extract the generated data
     start = False
-    text = "<div class=\"align-%(align)s\">\n" % {'align': align}
-    with open('__temp.svg', 'rb') as infile:
+    text = f'<div class="align-{align}">\n'
+    with open(temp_filepath, 'r') as infile:
         for aline in infile:
             if aline.find('<svg ') != -1:
                 start = True
-                text += '   <svg class=\"align-%(align)s\" %(width)s viewBox="0 0 576 432" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg >"\n' % {'align': align, 'width': width}
+                text += (
+                    f'<svg width="{width}" '
+                    f'viewBox="0 0 {box_width} {box_height}" '
+                    f'preserveAspectRatio="true" '
+                    'xmlns="http://www.w3.org/2000/svg >\n'
+                )
             elif start:
-                try:
-                    text += '   ' + unicode(aline) 
-                except: 
-                    pass
-    text += "\n</div>\n"
-    os.system('rm -f __temp.svg')
-        
+                text += '  ' + aline
+    text += '\n</div>\n'
+    os.remove(temp_filepath)
+
     return [nodes.raw('matplotlib', text, format='html')]
 
 plot_directive.content = 1

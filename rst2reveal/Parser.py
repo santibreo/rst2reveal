@@ -4,9 +4,12 @@ try:
 except:
     pass
 
-import os, sys
+import os, subprocess
 import docutils.core
+from . import REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES, STATIC_CSS_PATH
 from pathlib import Path
+from typing import Generator, Optional
+import shutil
 
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
 
@@ -18,14 +21,49 @@ from .PlotDirective import *
 from .SmallRole import *
 from .VspaceRole import *
 
+def write_pygments_css(pygments_style: Optional[str] = None
+                       ): # -> Generator[Path, None, None] not working
+    """
+    Generates pygments style ``css`` for a given theme, all themes are
+    generated if no theme is passed
+    """
+    for style in PYGMENTS_STYLES:
+        if pygments_style is not None and style != pygments_style:
+            continue
+        style_path = PYGMENTS_CSS_PATH / f"{style}.css"
+        cmd_out = subprocess.run(
+            f'pygmentize -S {style} -f html', capture_output=True
+        )
+        css_str = cmd_out.stdout.decode()
+        lines = ['.highlight ' + line for line in css_str.splitlines() if line]
+        with style_path.open('w', encoding="utf-8") as _file:
+            _file.write('\n'.join(lines) + '\n')
+        yield style_path
+
+
 class Parser:
     """Class converting a stand-alone reST file into a Reveal.js-powered HTML5 file, using the provided options."""
 
-    def __init__(self, input_file, output_file='', theme='default', transition = 'default', stylesheet='',
-                 mathjax_path='', pygments_style='', vertical_center=False,
-                 horizontal_center=False, title_center=False, footer=False, page_number=False,
-                 controls=False, firstslide_template='', footer_template=''):
-        """ Constructor of the Parser class.
+    def __init__(
+        self,
+        input_file,
+        output_file='',
+        theme='default',
+        transition = 'linear',
+        stylesheet='',
+        mathjax_path='',
+        pygments_style='',
+        vertical_center=False,
+        horizontal_center=True,
+        title_center=False,
+        footer=False,
+        page_number=False,
+        controls=False,
+        firstslide_template='',
+        footer_template=''
+    ):
+        """
+        Constructor of the Parser class.
 
         ``create_slides()`` must then be called to actually produce the presentation.
 
@@ -89,6 +127,9 @@ class Parser:
         # Input/Output files
         self.input_file = Path(input_file)
         self.output_file = Path(output_file)
+        self.static_path = self.output_file.parent / "static"
+        self.static_css_path = self.static_path / "css"
+        self.static_js_path = self.static_path / "js"
 
         # Style
         self.theme = theme
@@ -116,12 +157,12 @@ class Parser:
         # Temnplate for the footer
         self.footer_template = footer_template
 
-
     def create_slides(self):
         """Creates the HTML5 presentation based on the arguments given to the constructor."""
 
         # Copy the reveal library in the current directory
         self._copy_reveal()
+        self._copy_static()
 
         # Create the writer and retrieve the parts
         self.html_writer = RST2RevealWriter()
@@ -133,34 +174,51 @@ class Parser:
         self._produce_output()
 
     def _copy_reveal(self):
-        curr_dir = self.output_file.parent
-        cwd = os.getcwd()
         # Copy the reveal subfolder
-        if not (curr_dir / 'reveal').is_dir():
-            sources_dir = os.path.abspath(os.path.dirname(__file__)+'/reveal')
-            import shutil
-            shutil.copytree(sources_dir, curr_dir / 'reveal')
-        # Generate the Pygments CSS file
-        self.is_pygments = False
-        if not self.pygments_style == '':
-            # Check if Pygments is installed
-            try:
-                import pygments
-                self.is_pygments = True
-            except:
-                print('Warning: Pygments is not installed, the code will not be highlighted.')
-                print('You should install it with `pip install pygments`')
-                return
-            os.chdir(curr_dir)
-            import subprocess, shutil
-            os.system("pygmentize -S "+self.pygments_style+" -f html -O bg=light > reveal/css/pygments.css")
-            # Fix the bug where the literal color goes to math blocks...
-            with open('reveal/css/pygments.css', 'r') as infile:
-                with open('reveal/css/pygments.css.tmp', 'w') as outfile:
-                    for aline in infile:
-                        outfile.write('.highlight '+aline)
-            shutil.move('reveal/css/pygments.css.tmp', 'reveal/css/pygments.css')
-            os.chdir(cwd)
+        shutil.copytree(
+            os.path.realpath(REVEAL_PATH),
+            self.output_file.parent / 'reveal',
+            dirs_exist_ok=True
+        )
+
+    def _copy_static(self):
+        #  {{{
+        """
+        Copy static files to destination folder
+        """
+        # Create directory tree
+        self.static_css_path.mkdir(parents=True, exist_ok=True)
+        self.static_js_path.mkdir(exist_ok=True)
+        # Copy basic rst2reveal.css
+        rst2reveal_css_path = STATIC_CSS_PATH / "rst2reveal.css"
+        destination_path = self.static_css_path / rst2reveal_css_path.name
+        shutil.copy(rst2reveal_css_path, destination_path)
+        self.rst2reveal_href = destination_path.relative_to(
+            self.output_file.parent
+        ).as_posix()
+        # Copy custom stylesheet if defined
+        if (self.stylesheet
+            and (custom_css_path := Path(self.stylesheet)).exists()
+            and custom_css_path.is_file()
+            and custom_css_path.suffix == ".css"):
+            destination_path = self.static_css_path / custom_css_path.name
+            shutil.copy(custom_css_path, destination_path)
+            self.stylesheet_href = destination_path.relative_to(
+                self.output_file.parent
+            ).as_posix()
+        else:
+            self.stylesheet_href = ''
+        # Copy Pygments css if available
+        if PYGMENTS_STYLES:
+            pygments_css_path = next(write_pygments_css(self.pygments_style))
+            destination_path = self.static_css_path / pygments_css_path.name
+            shutil.copy(pygments_css_path, destination_path)
+            self.pygments_href = destination_path.relative_to(
+                self.output_file.parent
+            ).as_posix()
+        else:
+            self.pygments_href = ''
+        #  }}}
 
     def _produce_output(self):
 
@@ -272,60 +330,46 @@ class Parser:
 
 
     def _generate_header(self):
-
-        header="""<!doctype html>
-        <html lang="en">
-	        <head>
-		        <meta charset="utf-8">
-		        <title>%(title)s</title>
-		        <meta name="description" content="%(title)s">
-		        %(meta)s
-		        <meta name="apple-mobile-web-app-capable" content="yes" />
-		        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-		        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">
-		        <link rel="stylesheet" href="reveal/css/reveal.min.css">
-		        %(pygments)s
-		        <link rel="stylesheet" href="reveal/css/rst2reveal.css">
-		        <link rel="stylesheet" href="reveal/css/theme/default.css" id="theme">
-		        <link rel="stylesheet" href="reveal/css/theme/%(theme)s.css" id="theme">
-		        <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">
-		        <script type="text/javascript" src="%(mathjax_path)s?config=TeX-AMS-MML_HTMLorMML"></script>
-		        <!-- Extra styles -->
-                <style>
-                    .reveal section {
-                      text-align: %(horizontal_center)s;
-                    }
-                    .reveal h2{
-                      text-align: %(title_center)s;
-                    }
-                </style>
-                %(custom_stylesheet)s
-		        <!--[if lt IE 9]>
-		        <script src="reveal/lib/js/html5shiv.js"></script>
-		        <![endif]-->
-	        </head>
-        """%{'title': self.title,
-             'meta' : self.parts['meta'],
-             'theme': self.theme,
-             'pygments': '<link rel="stylesheet" href="reveal/css/pygments.css">' if self.is_pygments else '',
-             'mathjax_path': self.mathjax_path,
-             'horizontal_center': 'center' if self.horizontal_center else 'left',
-             'title_center': 'center' if self.title_center else 'left',
-             'custom_stylesheet' : '<link rel="stylesheet" href="%s">'%self.stylesheet if self.stylesheet else ''}
-
+        rst2reveal_css = f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
+        pygments_css = f'<link rel="stylesheet" href="{self.pygments_href}">' if self.pygments_href else ''
+        custom_css = f'<link rel="stylesheet" href="{self.stylesheet_href}">' if self.stylesheet_href else ''
+        header='\n'.join((
+            '<!doctype html>',
+            f'   <html lang="{locale}">',
+	        '       <head>',
+		    '           <meta charset="utf-8">',
+		    f'           <title>{self.title}</title>',
+		    f'           <meta name="description" content="{self.title}">',
+		    f'           {self.parts["meta"]}',
+		    '           <meta name="apple-mobile-web-app-capable" content="yes" />',
+		    '           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+		    '           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
+		    '           <link rel="stylesheet" href="reveal/dist/reveal.css">',
+		    f'           <link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
+		    '           <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
+		    '           <link rel="stylesheet" href="reveal/css/rst2reveal.css">',
+		    f'           {pygments_css}',
+		    f'           {rst2reveal_css}',
+		    '           <!-- Extra styles -->',
+            '           <style type="text/css">',
+            '               .reveal section {',
+            f'                   text-align: left;',
+            '               }',
+            '           </style>',
+		    f'           {custom_css}',
+	        '       </head>'
+        ))
         return header
 
 
     def _generate_footer(self):
-
         if self.page_number:
-            script_page_number = """
-		            <script>
+            script_page_number = """<script>
                         // Fires each time a new slide is activated
                         Reveal.addEventListener( 'slidechanged', function( event ) {
                             if(event.indexh > 0) {
                                 if(event.indexv > 0) {
-                                    val = event.indexh + ' - ' + event.indexv
+                                    val = event.indexh + '.' + event.indexv
                                     document.getElementById('slide_number').innerHTML = val;
                                 }
                                 else{
@@ -336,42 +380,63 @@ class Parser:
                                 document.getElementById('slide_number').innerHTML = '';
                             }
                         } );
-                    </script>"""
+                    </script>
+"""
         else:
             script_page_number = ""
 
         footer="""
-		        <script src="reveal/lib/js/head.min.js"></script>
-		        <script src="reveal/js/reveal.min.js"></script>
-		        <script>
-			        // Full list of configuration options available here:
-			        // https://github.com/hakimel/reveal.js#configuration
+                <script src="reveal/dist/reveal.js"></script>
+                <script src="reveal/plugin/zoom/zoom.js"></script>
+                <script src="reveal/plugin/notes/notes.js"></script>
+                <script src="reveal/plugin/search/search.js"></script>
+                <script src="reveal/plugin/markdown/markdown.js"></script>
+                <script src="reveal/plugin/highlight/highlight.js"></script>
+                <script src="reveal/plugin/math/math.js"></script>
+                <script>
 			        Reveal.initialize({
 				        controls: %(controls)s,
-				        progress: false,
+				        progress: true,
 				        history: true,
 				        overview: true,
 				        keyboard: true,
 				        loop: false,
 				        touch: true,
 				        rtl: false,
-				        center: %(vertical_center)s,
-				        mouseWheel: true,
+                        hash: true,
+                        backgroundTransition: 'convex',
+				        center: true,
+				        mouseWheel: false,
 				        fragments: true,
 				        rollingLinks: false,
-				        transition: '%(transition)s'
+				        transition: '%(transition)s',
+                        math: {
+                            // mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
+                            config: 'TeX-AMS_HTML-full',
+                            TeX: {
+                                Macros: {
+                                    R: '\\mathbb{R}',
+                                    set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]
+                                }
+                            }
+                        },
+
+                        // Learn about plugins: https://revealjs.com/plugins/
+                        plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
+                        // Full list of configuration options available here:
+                        // https://github.com/hakimel/reveal.js#configuration
 			        });
 		        </script>
-            %(script_page_number)s
-
-	        %(footer)s
+                %(script_page_number)s
+                %(footer)s
 	        </body>
-        </html>""" % {'transition' : self.transition,
-                        'footer' : self.footer_html,
-                        'script_page_number' : script_page_number,
-                        'vertical_center' : 'true' if self.vertical_center else 'false',
-                        'controls': 'true' if self.controls else 'false'}
-
+        </html>""" % {
+            'transition' : self.transition,
+            'footer' : self.footer_html,
+            'script_page_number' : script_page_number,
+            'vertical_center' : 'true' if self.vertical_center else 'false',
+            'controls': 'true' if self.controls else 'false'
+        }
         return footer
 
 

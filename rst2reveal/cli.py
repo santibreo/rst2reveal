@@ -1,28 +1,18 @@
 #!/usr/bin/env python
+from __future__ import annotations
 import os, sys
-import argparse
+from argparse import ArgumentParser
 from pathlib import Path
-from rst2reveal import Parser
+from .Parser import Parser
+from . import PYGMENTS_STYLES, REVEAL_THEMES, REVEAL_TRANSITIONS
+from typing import Optional, Sequence
 
-print("rst2reveal: ReST to Reveal.js HTML5 slide generator.")
-
-# Test the presence of Pygments
-isPygments=False
-try:
-    from pygments.styles import STYLE_MAP
-    isPygments = True
-    pygments_styles = STYLE_MAP.keys()
-except:
-    print("Pygments is not installed, code blocks won't be highlighted")
 
 # Allowed themes and transitions
-themes = ['default', 'beige', 'night']
-transitions = ['default', 'cube', 'page', 'concave', 'zoom', 'linear', 'fade', 'none']
-options=['input_file', 'output_file', 'theme', 'transition', 'mathjax_path', 'pygments_style']
 
-def main():
+def main(argv: Optional[Sequence[str]] = None) -> int:
     # Define arguments
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.description="""rst2reveal: ReST to Reveal.js slide generator."""
     # Name of the ReST file to process
     parser.add_argument("input_file",
@@ -31,17 +21,17 @@ def main():
     parser.add_argument("--gen_config", action="store_true",
                         help="Generates a default configuration file (extension must be .ini, .cfg or .conf).")
     # Theme to use
-    parser.add_argument("-t", "--theme", type=str, choices=themes, default='default',
+    parser.add_argument("-t", "--theme", type=str, choices=REVEAL_THEMES, default='default',
                         help="The built-in theme to be used [default: %(default)s")
     # Custom stylesheet
     parser.add_argument("-s", "--stylesheet", type=str, default='',
                         help="A custom CSS file that will be called after all other CSS files, including the chosen theme if any.")
     # Transition
-    parser.add_argument("-tr", "--transition", type=str, choices=transitions, default='linear',
+    parser.add_argument("-tr", "--transition", type=str, choices=REVEAL_TRANSITIONS, default='linear',
                         help="The transition to be used [default: %(default)s")
     # Pygments
-    if isPygments:
-        parser.add_argument("-p", "--pygments_style", type=str, default='default', choices=pygments_styles,
+    if PYGMENTS_STYLES:
+        parser.add_argument("-p", "--pygments_style", type=str, default='default', choices=PYGMENTS_STYLES,
                             help="The style to be used for highlighting code with Pygments.")
     # Generated HTML file
     parser.add_argument("-o", "--output_file", type=str,
@@ -73,12 +63,12 @@ def main():
     # Global function
     parser.add_argument("--all", action='store_true',
                         help='Applies all tuning flags: vertical_center, horizontal_center, title_center, footer and numerate (default: False).')
-
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     input_file = Path(args.input_file)
     if input_file.exists() and not input_file.is_file():
-        print('Error: Passed input_file must be a file')
-        exit(1)
+        print(f'ERROR: {os.path.realpath(input_file)!r} is not a valid file',
+              file=sys.stderr)
+        return 1
     # Read configuration file {{{
     if input_file.suffix in {'.cfg', '.conf', '.ini' }:
         print(f'Reading from the configuration file {input_file}.')
@@ -178,26 +168,13 @@ def main():
                 Path(args.input_file).with_suffix('.html')
             )
         # theme
-        theme = args.theme if args.theme and args.theme in themes else 'default'
+        theme = args.theme
         # stylesheet
-        if args.stylesheet:
-            stylesheet = args.stylesheet
-        else:
-            stylesheet = ''
+        stylesheet = args.stylesheet
         # transition
         transition = args.transition if args.transition and args.transition in transitions else 'linear'
         # pygments
-        if isPygments:
-            if args.pygments_style:
-                if args.pygments_style in pygments_styles:
-                    pygments_style = args.pygments_style
-                else:
-                    print('Error: Pygments style', args.pygments_style, 'does not exist. Using default style.')
-                    pygments_style = 'default'
-            else:
-                pygments_style = 'default'
-        else:
-            pygments_style = 'default'
+        pygments_style = args.pygments_style
         # mathjax_path
         if args.mathjax_path:
             mathjax_path = args.mathjax_path
@@ -295,7 +272,9 @@ def main():
 
     parser.create_slides()
     print(f'The output is in:\n\t {Path(parser.output_file)}')
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    print("rst2reveal: ReST to Reveal.js HTML5 slide generator.")
+    sys.exit(main())

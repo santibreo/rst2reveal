@@ -6,7 +6,6 @@ ReST to Reveal.js translator
 ++++++++++++++++++++++++++++
 
 :author: Julien Vitay
-:author: Santiago Pérez
 :date: August 2013
 :email: julien.vitay@gmail.com
 
@@ -21,10 +20,6 @@ ReST to Reveal.js translator
 * **Reveal.js** has more features than what **rst2reveal** can produce, so if you are more fluent in HTML than ReST, you should use it directly.
 
 * **rst2reveal** ships some parts of Reveal.js (mainly ``.js`` and ``.css`` files), so it is released under the same MIT license.
-
-
-Basic ReST markup
-=================
 
 
 Basic ReST markup
@@ -398,29 +393,28 @@ Source::
 Admonitions
 ===========
 
-Admonitions are similar to topic, but the title is built-in. For now, only ``note``:
+Admonitions are similar to topic, but the title is built-in. For now, only ``note``, ``caution`` and ``danger`` are implemented:
+
+::
+
+    .. {note / caution / danger}::
+
+        This is an admonition
+
 
 .. note::
 
     This is a note
 
-::
-
-    .. note::
-
-        This is a note
-
-and ``caution`` are implemented:
 
 .. caution::
 
     This is a warning
 
-::
 
-    .. caution::
+.. danger::
 
-        This is a warning
+    This is an error
 
 
 Sidebar
@@ -572,10 +566,9 @@ You can directly generate plots if matplotlib is installed:
 
 .. matplotlib::
     :align: center
-    :width: 70%
+    :width: 600
 
     import numpy as np
-    ax = axes()
     x = np.linspace(0, 10, 100)
     ax.plot(x, np.sin(x) * np.exp(-0.1 * (x - 5) ** 2), 'b', lw=3, label='damped sine')
     ax.plot(x, -np.cos(x) * np.exp(-0.1 * (x - 5) ** 2), 'r', lw=3, label='damped cosine')
@@ -595,10 +588,9 @@ Simply use the ``matplotlib`` directive and write the corresponding matplotlib c
 
     .. matplotlib::
         :align: center
-        :width: 80%
+        :width: 600
 
         import numpy as np
-        ax = axes()
         x = np.linspace(0, 10, 100)
         ax.plot(x, np.sin(x) * np.exp(-0.1*(x-5)**2), 'b',
                 lw=3, label='damped sine')
@@ -618,14 +610,14 @@ Matplotlib
 
 .. code-block:: python
 
-    from pylab import *
-    fig = figure()
+    from matplotlib import pylab as plt
+    fig, ax = plt.subplots()
 
 and:
 
 .. code-block:: python
 
-    show()
+    plt.show()
 
 * The python code is interpreted "as-if" with ``exec`` statements, so be careful with what you write!
 
@@ -654,11 +646,9 @@ Matplotlib
 
 .. matplotlib::
     :align: center
-    :width: 50%
     :xkcd:
 
     import numpy as np
-    ax = axes()
     x = np.linspace(0, 10, 100)
     ax.plot(x, np.sin(x) * np.exp(-0.1 * (x - 5) ** 2), 'b', lw=3, label='damped sine')
     ax.plot(x, -np.cos(x) * np.exp(-0.1 * (x - 5) ** 2), 'r', lw=3, label='damped cosine')
@@ -678,10 +668,9 @@ Two columns
     .. matplotlib::
         :align: center
         :width: 100%
-        :xkcd:
+        :xkcd: 2
 
         import numpy as np
-        ax = axes()
 
         x = np.linspace(0, 10, 100)
         ax.plot(x, np.sin(x) * np.exp(-0.1 * (x - 5) ** 2), 'b', lw=3, label='damped sine')
@@ -715,9 +704,6 @@ Two columns
 
             * Content in the right column
 
-
-Configuring rst2reveal
-======================
 
 Configuring rst2reveal
 ======================

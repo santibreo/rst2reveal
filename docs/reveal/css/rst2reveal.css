@@ -1,6 +1,14 @@
 /*********************************************
+ * GLOBAL
+ *********************************************/
+:root {
+    --r-main-font-size: 1.5rem;
+    --r-code-font: Fira code;
+}
+
+/*********************************************
  * SLIDES
- *********************************************/  
+ *********************************************/
 .reveal .slides>section,
 .reveal .slides>section>section {
 	padding: 0px 0px;
@@ -8,7 +16,7 @@
 
 /*********************************************
  * TWO COLUMNS
- *********************************************/ 
+ *********************************************/
 .columns{
     width: 100%;
   }
@@ -23,44 +31,44 @@
 
 /*********************************************
  * IMAGES
- *********************************************/  
+ *********************************************/
 
-.align-center {  
-    text-align: center; 
+.align-center {
+    text-align: center;
 }
-.align-left {  
-    text-align: left; 
+.align-left {
+    text-align: left;
 }
-.align-right {  
-    text-align: right; 
+.align-right {
+    text-align: right;
 }
 
-.reveal img.align-right {  
+.reveal img.align-right {
     display: inline;
     float: right;
     border: none;
     box-shadow: none;
 }
 
-.reveal img.align-left {  
+.reveal img.align-left {
     display: inline;
     float: left;
     border: none;
     box-shadow: none;
 }
 
-.reveal img.align-center { 
+.reveal img.align-center {
     display: inline;
     float: center;
     border: none;
     box-shadow: none;
 }
-  
+
 /*********************************************
  * VIDEOS
- *********************************************/  
+ *********************************************/
 
-.reveal video {  
+.reveal video {
     display: inline;
     border: none;
     box-shadow: none;
@@ -99,5 +107,5 @@
 #slide-number {
     margin: 10px auto;
     display: inline;
-    float:right;
+    float: right;
 }

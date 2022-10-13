@@ -1,0 +1,189 @@
+/*********************************************
+ * GLOBAL
+ *********************************************/
+:root {
+    --r-main-font-size: 1.5rem;
+    --r-code-font: Fira code;
+    --admonition-note-bg: #f0f7fb;
+    --admonition-note-color: #3498db;
+    --admonition-caution-bg: #fffbea;
+    --admonition-caution-color: #e4c736;
+    --admonition-danger-bg: #f9e7e6;
+    --admonition-danger-color: #bc3b2b;
+}
+
+/*********************************************
+ * SLIDES
+ *********************************************/
+.reveal .slides>section,
+.reveal .slides>section>section {
+	padding: 0px 0px;
+}
+
+/*********************************************
+ * TWO COLUMNS
+ *********************************************/
+.columns{
+    width: 100%;
+  }
+.columns div.left{
+    width: 47%;
+    float: left;
+}
+.columns div.right{
+    width: 47%;
+    float: right;
+}
+
+/*********************************************
+ * IMAGES
+ *********************************************/
+
+.align-center {
+    text-align: center;
+}
+.align-left {
+    text-align: left;
+}
+.align-right {
+    text-align: right;
+}
+
+.reveal img.align-right {
+    display: inline;
+    float: right;
+    border: none;
+    box-shadow: none;
+}
+
+.reveal img.align-left {
+    display: inline;
+    float: left;
+    border: none;
+    box-shadow: none;
+}
+
+.reveal img.align-center {
+    display: inline;
+    float: center;
+    border: none;
+    box-shadow: none;
+}
+
+/*********************************************
+ * VIDEOS
+ *********************************************/
+
+.reveal video {
+    display: inline;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 10px;
+}
+
+
+/*********************************************
+ * CODE
+ *********************************************/
+.reveal pre {
+    box: none;
+    box-shadow: none;
+}
+
+/*********************************************
+ * LISTS
+ *********************************************/
+.reveal ul {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.reveal ol {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.reveal li {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+
+/*********************************************
+ * SLIDE NUMBER
+ *********************************************/
+#slide-number {
+    margin: 10px auto;
+    display: inline;
+    float: right;
+}
+
+/*********************************************
+ * ADMONITIONS
+ *********************************************/
+.admonition {
+    font-size: 1.2rem;
+    padding: 12px;
+    margin-top: 2.4rem;
+}
+
+.admonition > p {
+    margin-inline: 0px;
+    margin-block: 0.2rem;
+}
+
+.note p.first.admonition-title,
+.caution p.first.admonition-title,
+.warning p.first.admonition-title,
+.danger p.first.admonition-title {
+    margin-top: -1.8rem;
+}
+
+.admonition:before {
+    position: relative;
+    top: -2.4rem;
+    left: -16px;
+    font-size: 1.7rem;
+    z-index: -1;
+    line-height: 1.2rem;
+    border-radius: 10px 10px 0px 0px;
+    padding-block: 2px;
+    padding-inline: 4px;
+}
+
+
+.admonition.note {
+    background-color: var(--admonition-note-bg);
+    border-left: solid 4px var(--admonition-note-color);
+    color: var(--admonition-note-color);;
+}
+
+.admonition.note:before {
+    content: '🖉';
+    background: var(--admonition-note-color);
+    color: var(--admonition-note-bg);
+}
+
+.admonition.caution,
+.admonition.warning {
+    background-color: var(--admonition-caution-bg);
+    border-left: solid 4px var(--admonition-caution-color);
+    color: var(--admonition-caution-color);;
+}
+
+.admonition.warning:before,
+.admonition.caution:before {
+    content: '⚠ ';
+    background: var(--admonition-caution-color);
+    color: var(--admonition-caution-bg);
+}
+
+.admonition.danger {
+    background-color: var(--admonition-danger-bg);
+    border-left: solid 4px var(--admonition-danger-color);
+    color: var(--admonition-danger-color);;
+}
+
+.admonition.danger:before {
+    content: '🛇 ';
+    background: var(--admonition-danger-color);
+    color: var(--admonition-danger-bg);
+}
