@@ -418,56 +418,6 @@ Admonitions are similar to topic, but the title is built-in. For now, only ``not
     This is an error
 
 
-Sidebar
-=======
-
-.. sidebar:: Sidebar Title
-   :subtitle: Optional Sidebar Subtitle
-   :class: right
-
-   Subsequent indented lines comprise
-   the body of the sidebar, and are
-   interpreted as body elements.
-
-* Sidebars are topics covering only 50% of the screen, floating either on the left or right side of the slide.
-
-* They optionally take subtitles.
-
-* Position is determined by the ``class`` attribute.
-
-::
-
-    .. sidebar:: Sidebar Title
-       :subtitle: Optional Sidebar Subtitle
-       :class: right
-
-       Subsequent indented lines comprise
-       the body of the sidebar, and are
-       interpreted as body elements.
-
-
-
-Sidebar
-=======
-
-
-.. sidebar:: An image
-    :subtitle: with its subtitle
-    :class: left
-
-    .. image:: http://collider.com/wp-content/uploads/monty-python-image-600x450.jpg
-        :width: 100%
-
-    :small:`Fig. 1: legend of the image.`
-
-
-* Sidebars can be useful to provide a title and legend to an image.
-
-* The legend can be made smaller by using the ``small`` role:
-
-    ``:small:`Fig. 1: legend of the image.```
-
-
 Raw HTML
 ========
 
@@ -567,7 +517,7 @@ You can directly generate plots if matplotlib is installed:
 
 .. matplotlib::
     :align: center
-    :width: 600
+    :width: 70%
 
     import numpy as np
     x = np.linspace(0, 10, 100)
@@ -589,7 +539,7 @@ Simply use the ``matplotlib`` directive and write the corresponding matplotlib c
 
     .. matplotlib::
         :align: center
-        :width: 600
+        :width: 70%
 
         import numpy as np
         x = np.linspace(0, 10, 100)
@@ -647,6 +597,7 @@ Matplotlib
 
 .. matplotlib::
     :align: center
+    :width: 40%
     :xkcd:
 
     import numpy as np
@@ -669,7 +620,7 @@ Two columns
     .. matplotlib::
         :align: center
         :width: 100%
-        :xkcd: 2
+        :xkcd:
 
         import numpy as np
 

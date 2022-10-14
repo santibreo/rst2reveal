@@ -57,8 +57,10 @@ def parse_docutils_metadata(metadata_str: str) -> dict[str, str]:
 
 
 class Parser:
-    """Class converting a stand-alone reST file into a Reveal.js-powered HTML5 file, using the provided options."""
-
+    """
+    Class converting a stand-alone reST file into a Reveal.js-powered HTML5
+    file, using the provided options.
+    """
     def __init__(
         self,
         input_file: Path,
@@ -367,6 +369,7 @@ class Parser:
             "              // Full list of configuration options available here:",
             "              // https://github.com/hakimel/reveal.js#configuration",
             "          });",
+            "          Reveal.initialize({ slideNumber: 'c/t' });" if self.slidenos else '',
             '       </script>',
             f'{script_page_number}',
             #'%(footer)s',

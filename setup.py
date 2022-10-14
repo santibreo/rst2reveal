@@ -52,9 +52,10 @@ except:
     print('You can install it from: http://pypi.python.org/pypi/matplotlib')
 
 # Install the package
+from rst2reveal import __version__ as version
 setup(
     name='rst2reveal',
-	version='0.0.2',
+	version=version,
 	license='MIT',
 	platforms='GNU/Linux',
 	description='ReST to Reveal.js translator.',

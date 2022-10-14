@@ -3,7 +3,6 @@ __docformat__ = 'reStructuredText'
 import os
 import re
 
-import docutils
 from docutils import nodes
 from docutils.writers.html4css1 import HTMLTranslator, Writer
 
@@ -17,23 +16,25 @@ class RST2RevealWriter(Writer):
         'body_pre_docinfo', 'docinfo', 'body', 'body_suffix',
         'title', 'subtitle', 'header', 'footer', 'meta', 'fragment',
         'html_prolog', 'html_head', 'html_title', 'html_subtitle',
-        'html_body', 'metadata')
+        'html_body', 'metadata'
+    )
 
-                    
+
 class RST2RevealTranslator(HTMLTranslator):
-    """ Translator converting the reST items into HTML5 code usable by Reveal.js.
-    
+    """
+    Translator converting the reST items into HTML5 code usable by Reveal.js.
+
     Derived from docutils.writers.html4css1.HTMLTranslator.
-    """ 
+    """
 
     def __init__(self, document):
-        HTMLTranslator.__init__(self, document) 
-        self.math_output = 'mathjax' 
+        HTMLTranslator.__init__(self, document)
+        self.math_output = 'mathjax'
         self.metadata = []
         self.subsection_previous =False
         self.inline_lists = False
-    
-        
+
+
     def visit_header(self, node):
         self.context.append(len(self.body))
 
@@ -45,22 +46,22 @@ class RST2RevealTranslator(HTMLTranslator):
         self.body_prefix.extend(header)
         self.header.extend(header)
         del self.body[start:]
-        
+
     def visit_title(self, node):
         """Only 6 section levels are supported by HTML."""
         check_id = 0  # TODO: is this a bool (False) or a counter?
         close_tag = ' '*12 + '</p>\n'
         if isinstance(node.parent, nodes.topic):
-            self.body.append(' '*12 + 
+            self.body.append(' '*12 +
                   self.starttag(node, 'p', '', CLASS='topic-title first'))
         elif isinstance(node.parent, nodes.sidebar):
-            self.body.append(' '*12 + 
+            self.body.append(' '*12 +
                   self.starttag(node, 'p', '', CLASS='sidebar-title'))
         elif isinstance(node.parent, nodes.Admonition):
-            self.body.append(' '*12 + 
+            self.body.append(' '*12 +
                   self.starttag(node, 'p', '', CLASS='admonition-title'))
         elif isinstance(node.parent, nodes.table):
-            self.body.append(' '*12 + 
+            self.body.append(' '*12 +
                   self.starttag(node, 'caption', ''))
             close_tag = ' '*12 + '</caption>\n'
         elif isinstance(node.parent, nodes.document):
@@ -81,8 +82,8 @@ class RST2RevealTranslator(HTMLTranslator):
             self.body_pre_docinfo.extend(self.body)
             self.html_title.extend(self.body)
             del self.body[:]
-            
-            
+
+
     def visit_section(self, node):
         self.section_level += 1
         if not self.section_level == 2:
@@ -101,7 +102,7 @@ class RST2RevealTranslator(HTMLTranslator):
         if not self.subsection_previous:
             self.body.append('</section>\n\n')
         self.inline_lists = False
-        
+
     def visit_docinfo(self, node):
         self.context.append(len(self.body))
         self.in_docinfo = True
@@ -123,7 +124,7 @@ class RST2RevealTranslator(HTMLTranslator):
 
     def depart_docinfo_item(self):
         pass
-        
+
     def visit_field(self, node):
         pass
 
@@ -137,10 +138,10 @@ class RST2RevealTranslator(HTMLTranslator):
             name = field_names[0]
             value = field_values[0]
             self.metadata.append(name + '=' + value + '\n')
-            
+
     def depart_field_body(self, node):
         pass
-        
+
     def visit_block_quote(self, node):
         if not isinstance(node.parent, nodes.list_item):
             self.body.append(' '*12 + self.starttag(node, 'blockquote'))
@@ -148,7 +149,7 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_block_quote(self, node):
         if not isinstance(node.parent, nodes.list_item):
             self.body.append(' '*12 + '</blockquote>\n')
-        
+
 
     def visit_image(self, node):
         atts = {}
@@ -227,18 +228,18 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_image(self, node):
         self.body.append(self.context.pop())
 
-        
+
     def visit_bullet_list(self, node):
         atts = {}
         old_compact_simple = self.compact_simple
         self.context.append((self.compact_simple, self.compact_p))
         self.compact_p = None
         self.compact_simple = self.is_compactable(node)
-        
+
         if 'fragment' in node['classes']:
             node['classes'].remove('fragment')
             node['classes'].append('fragmented_list')
-            
+
         if self.compact_simple and not old_compact_simple:
             atts['class'] = 'simple'
         if self.inline_lists: # the list  should wrap an image
@@ -249,7 +250,7 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_bullet_list(self, node):
         self.compact_simple, self.compact_p = self.context.pop()
         self.body.append(' '*12 + '</ul>\n')
-        
+
     def visit_enumerated_list(self, node):
         """
         The 'start' attribute does not conform to HTML 4.01's strict.dtd, but
@@ -277,7 +278,7 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_enumerated_list(self, node):
         self.compact_simple, self.compact_p = self.context.pop()
         self.body.append(' '*12 + '</ol>\n')
-                
+
     def visit_list_item(self, node):
         if 'fragmented_list' in node.parent['classes']:
             self.body.append(' '*16 + self.starttag(node, 'li', '', CLASS='fragment'))
@@ -288,11 +289,4 @@ class RST2RevealTranslator(HTMLTranslator):
 
     def depart_list_item(self, node):
         self.body.append('</li>\n')
-                
-                
-    def visit_sidebar(self, node):
-        if 'classes' in node:
-            if node['classes'][0] in ['left', 'right']:
-                self.inline_lists = True
-        HTMLTranslator.visit_sidebar(self, node)
 

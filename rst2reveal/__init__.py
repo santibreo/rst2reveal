@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-__version__ = '0.2'
+__version__ = '1.0'
 
 # Package main locations
 RST2REVEAL_PATH = Path(__file__).absolute().parent
@@ -23,7 +23,7 @@ REVEAL_TRANSITIONS = [
 ]
 
 # Custom static files locations
-STATIC_PATH = PROJECT_PATH / '_static'
+STATIC_PATH = PROJECT_PATH / 'static'
 STATIC_CSS_PATH = STATIC_PATH / 'css'
 STATIC_FONT_PATH = STATIC_PATH / 'font'
 STATIC_JS_PATH = STATIC_PATH / 'js'
