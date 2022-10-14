@@ -10,6 +10,7 @@ if HAS_MATPLOTLIB:
     from . import plt
     from matplotlib import tempfile
 
+
 def align(argument: str):
     return directives.choice(argument, ('left', 'center', 'right'))
 
@@ -43,6 +44,7 @@ class MatplotlibDirective(Directive):
         ax: 'plt.Axes',
         alpha: float
     ) -> str:
+        #  {{{
         try:
             exec(code_as_text)
         except Exception as e:
@@ -60,8 +62,10 @@ class MatplotlibDirective(Directive):
         os.close(temp_fd)
         fig.savefig(temp_filepath, dpi=600, transparent=True)
         return temp_filepath
+        #  }}}
 
     def run(self):
+        #  {{{
         # Raise an error if the directive does not have contents.
         self.assert_has_content()
         if not HAS_MATPLOTLIB:
@@ -70,11 +74,9 @@ class MatplotlibDirective(Directive):
         code = '\n'.join(self.content)
         alpha = self.options.get('alpha') or 0
         width = self.options.get('width') or '75%'
-        xkcd = self.options.get('xkcd') or False
+        xkcd = self.options.get('xkcd', '') is None
         align = self.options.get('align') or 'center'
         if xkcd:
-            print(self.options['xkcd'])
-            print(type(self.options['xkcd']))
             with plt.xkcd(1):
                 fig, ax = plt.subplots()
                 fig_path = self.save_plot(code, fig, ax, alpha)
@@ -101,5 +103,6 @@ class MatplotlibDirective(Directive):
         text += '\n</div>\n'
         os.remove(fig_path)
         return [nodes.raw('matplotlib', text, format='html')]
+        #  }}}
 
 directives.register_directive('matplotlib', MatplotlibDirective)
