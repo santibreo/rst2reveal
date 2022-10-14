@@ -89,7 +89,6 @@ def plot_directive(name, arguments, options, content, lineno,
                 text += (
                     f'<svg width="{width}" '
                     f'viewBox="0 0 {box_width} {box_height}" '
-                    f'preserveAspectRatio="true" '
                     'xmlns="http://www.w3.org/2000/svg >\n'
                 )
             elif start:

@@ -4,12 +4,10 @@
 :root {
     --r-main-font-size: 1.5rem;
     --r-code-font: Fira code;
-    --admonition-note-bg: #f0f7fb;
-    --admonition-note-color: #3498db;
-    --admonition-caution-bg: #fffbea;
-    --admonition-caution-color: #e4c736;
-    --admonition-danger-bg: #f9e7e6;
-    --admonition-danger-color: #bc3b2b;
+    --admonition-bg-opacity: 0.25;
+    --admonition-note-color: 52, 152, 219;
+    --admonition-caution-color: 194, 166, 29;
+    --admonition-danger-color: 188, 59, 43;
 }
 
 /*********************************************
@@ -18,6 +16,7 @@
 .reveal .slides>section,
 .reveal .slides>section>section {
 	padding: 0px 0px;
+  text-align: left;
 }
 
 /*********************************************
@@ -122,7 +121,8 @@
 .admonition {
     font-size: 1.2rem;
     padding: 12px;
-    margin-top: 2.4rem;
+    margin-top: 2.9rem;
+    position: relative;
 }
 
 .admonition > p {
@@ -134,56 +134,55 @@
 .caution p.first.admonition-title,
 .warning p.first.admonition-title,
 .danger p.first.admonition-title {
-    margin-top: -1.8rem;
+    color:transparent;
+    max-height: 0px;
 }
 
+
 .admonition:before {
-    position: relative;
-    top: -2.4rem;
-    left: -16px;
+    position: absolute;
+    bottom: 100%;
+    left: -4px;
     font-size: 1.7rem;
-    z-index: -1;
-    line-height: 1.2rem;
+    line-height: 1em;
     border-radius: 10px 10px 0px 0px;
     padding-block: 2px;
     padding-inline: 4px;
+    color: var(--r-background-color);
 }
 
 
 .admonition.note {
-    background-color: var(--admonition-note-bg);
-    border-left: solid 4px var(--admonition-note-color);
-    color: var(--admonition-note-color);;
+    background-color: rgba(var(--admonition-note-color), var(--admonition-bg-opacity));
+    border-left: solid 4px rgb(var(--admonition-note-color));
+    color: rgb(var(--admonition-note-color));
 }
 
 .admonition.note:before {
     content: '🖉';
-    background: var(--admonition-note-color);
-    color: var(--admonition-note-bg);
+    background: rgb(var(--admonition-note-color));
 }
 
 .admonition.caution,
 .admonition.warning {
-    background-color: var(--admonition-caution-bg);
-    border-left: solid 4px var(--admonition-caution-color);
-    color: var(--admonition-caution-color);;
+    background-color: rgba(var(--admonition-caution-color), var(--admonition-bg-opacity));
+    border-left: solid 4px rgb(var(--admonition-caution-color));
+    color: rgb(var(--admonition-caution-color));
 }
 
 .admonition.warning:before,
 .admonition.caution:before {
     content: '⚠ ';
-    background: var(--admonition-caution-color);
-    color: var(--admonition-caution-bg);
+    background: rgb(var(--admonition-caution-color));
 }
 
 .admonition.danger {
-    background-color: var(--admonition-danger-bg);
-    border-left: solid 4px var(--admonition-danger-color);
-    color: var(--admonition-danger-color);;
+    background-color: rgba(var(--admonition-danger-color), var(--admonition-bg-opacity));
+    border-left: solid 4px rgb(var(--admonition-danger-color));
+    color: rgb(var(--admonition-danger-color));
 }
 
 .admonition.danger:before {
     content: '🛇 ';
-    background: var(--admonition-danger-color);
-    color: var(--admonition-danger-bg);
+    background: rgb(var(--admonition-danger-color));
 }

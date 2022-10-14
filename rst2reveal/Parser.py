@@ -4,22 +4,26 @@ try:
 except:
     pass
 
-import os, subprocess
-import docutils.core
-from . import REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES, STATIC_CSS_PATH
-from pathlib import Path
-from typing import Generator, Optional
+import os
+import subprocess
 import shutil
+import json
+import docutils.core
+from pathlib import Path
+from xml.etree import ElementTree
+from typing import Generator, Optional
 
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
 
 # Import custom directives
+from . import REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES, STATIC_CSS_PATH
 from .TwoColumnsDirective import *
 from .PygmentsDirective import *
 from .VideoDirective import *
 from .PlotDirective import *
 from .SmallRole import *
 from .VspaceRole import *
+
 
 def write_pygments_css(pygments_style: Optional[str] = None
                        ): # -> Generator[Path, None, None] not working
@@ -41,26 +45,32 @@ def write_pygments_css(pygments_style: Optional[str] = None
         yield style_path
 
 
+def parse_docutils_metadata(metadata_str: str) -> dict[str, str]:
+    """
+    Parses docutils metadata tag
+    """
+    metadata = dict()
+    for line in metadata_str.splitlines():
+        field, value = map(str.strip, line.split("=", maxsplit=1))
+        metadata[field] = ''.join(ElementTree.fromstring(value).itertext())
+    return metadata
+
+
 class Parser:
     """Class converting a stand-alone reST file into a Reveal.js-powered HTML5 file, using the provided options."""
 
     def __init__(
         self,
-        input_file,
-        output_file='',
-        theme='default',
-        transition = 'linear',
-        stylesheet='',
-        mathjax_path='',
-        pygments_style='',
-        vertical_center=False,
-        horizontal_center=True,
-        title_center=False,
-        footer=False,
-        page_number=False,
-        controls=False,
-        firstslide_template='',
-        footer_template=''
+        input_file: Path,
+        output_file: Path,
+        theme: str ='default',
+        transition: str = 'linear',
+        custom_css: Optional[Path] = None,
+        pygments_style: str = '',
+        footer: bool = False,
+        slidenos: bool = False,
+        controls: bool = False,
+        progress: bool = False,
     ):
         """
         Constructor of the Parser class.
@@ -125,42 +135,30 @@ class Parser:
         """
 
         # Input/Output files
-        self.input_file = Path(input_file)
-        self.output_file = Path(output_file)
+        if not input_file.exists() and input_file.suffix == ".rst":
+            raise ValueError(f"{input_file!s} is not a valid RST file!")
+        self.input_file = input_file
+        self.output_file = output_file
         self.static_path = self.output_file.parent / "static"
         self.static_css_path = self.static_path / "css"
         self.static_js_path = self.static_path / "js"
 
         # Style
         self.theme = theme
-        self.stylesheet = stylesheet
+        self.custom_css = custom_css
         self.transition = transition
-        self.vertical_center=vertical_center
-        self.horizontal_center = horizontal_center
-        self.title_center = title_center
-        self.write_footer=footer
-        self.page_number=page_number
-        self.controls=controls
-
-        # MathJax
-        if mathjax_path =='':
-            self.mathjax_path = 'http://cdn.mathjax.org/mathjax/latest/MathJax.js'
-        else:
-            self.mathjax_path = mathjax_path
-
+        self.slidenos = slidenos
+        self.controls = controls
+        self.progress = progress
         # Pygments
         self.pygments_style = pygments_style
 
-        # Template for the first slide
-        self.firstslide_template = firstslide_template
-
-        # Temnplate for the footer
-        self.footer_template = footer_template
-
     def create_slides(self):
-        """Creates the HTML5 presentation based on the arguments given to the constructor."""
-
-        # Copy the reveal library in the current directory
+        """
+        Creates the HTML5 presentation based on the arguments given to the
+        constructor.
+        """
+        # Copy the reveal library and _static files
         self._copy_reveal()
         self._copy_static()
 
@@ -168,8 +166,11 @@ class Parser:
         self.html_writer = RST2RevealWriter()
         self.html_writer.translator_class = RST2RevealTranslator
         with self.input_file.open('r', encoding='utf-8') as infile:
-            self.parts = docutils.core.publish_parts(source=infile.read(), writer=self.html_writer)
-
+            self.parts = docutils.core.publish_parts(source=infile.read(),
+                                                     writer=self.html_writer)
+        self.meta_info = parse_docutils_metadata(self.parts['metadata'])
+        self.meta_info['title'] = self.parts['title']
+        self.meta_info['subtitle'] = self.parts['subtitle']
         # Produce the html file
         self._produce_output()
 
@@ -197,17 +198,17 @@ class Parser:
             self.output_file.parent
         ).as_posix()
         # Copy custom stylesheet if defined
-        if (self.stylesheet
-            and (custom_css_path := Path(self.stylesheet)).exists()
+        if (self.custom_css
+            and (custom_css_path := Path(self.custom_css)).exists()
             and custom_css_path.is_file()
             and custom_css_path.suffix == ".css"):
             destination_path = self.static_css_path / custom_css_path.name
             shutil.copy(custom_css_path, destination_path)
-            self.stylesheet_href = destination_path.relative_to(
+            self.custom_css_href = destination_path.relative_to(
                 self.output_file.parent
             ).as_posix()
         else:
-            self.stylesheet_href = ''
+            self.custom_css_href = ''
         # Copy Pygments css if available
         if PYGMENTS_STYLES:
             pygments_css_path = next(write_pygments_css(self.pygments_style))
@@ -221,7 +222,6 @@ class Parser:
         #  }}}
 
     def _produce_output(self):
-
         self.title =  self.parts['title']
         self._analyse_metainfo()
 
@@ -230,7 +230,6 @@ class Parser:
         footer = self._generate_footer()
 
         document_content = header + body + footer
-
 
         with self.output_file.open('w', encoding='utf-8') as wfile:
             wfile.write(document_content)
@@ -251,197 +250,128 @@ class Parser:
         return body
 
     def _analyse_metainfo(self):
-
-        def clean(text):
-            import re
-            if len(re.findall(r'<paragraph>', text)) > 0:
-                text = re.findall(r'<paragraph>(.+)</paragraph>', text)[0]
-            if len(re.findall(r'<author>', text)) > 0:
-                text = re.findall(r'<author>(.+)</author>', text)[0]
-            if len(re.findall(r'<date>', text)) > 0:
-                text = re.findall(r'<date>(.+)</date>', text)[0]
-            if len(re.findall(r'<reference', text)) > 0:
-                text = re.findall(r'<reference refuri="mailto:(.+)">', text)[0]
-            return text
-
-        self.meta_info ={'author': ''}
-
-        texts=self.parts['metadata'].split('\n')
-        for t in texts:
-            if not t == '':
-                name=t.split('=')[0]
-                content=t.replace(name+'=', '')
-                content=clean(content)
-                self.meta_info[name]= content
-
         self._generate_titleslide()
 
     def _generate_titleslide(self):
-
-        if self.parts['title'] != '': # A title has been given
-            self.meta_info['title'] = self.parts['title']
-        elif not 'title' in self.meta_info.keys():
-            self.meta_info['title'] = ''
-
-        if self.parts['subtitle'] != '': # defined with a underlined text instead of :subtitle:
-            self.meta_info['subtitle'] = self.parts['subtitle']
-        elif not 'subtitle' in self.meta_info.keys():
-            self.meta_info['subtitle'] = ''
-
-        if not 'email' in self.meta_info.keys():
-            self.meta_info['email'] = ''
-
-        if not 'institution' in self.meta_info.keys():
-            self.meta_info['institution'] = ''
-
-        if not 'date' in self.meta_info.keys():
-            self.meta_info['date'] = ''
-
         # Separators
-        self.meta_info['is_institution'] = '-' if self.meta_info['institution'] != '' else ''
-        self.meta_info['is_author'] = '.' if self.meta_info['author'] != '' else ''
-        self.meta_info['is_subtitle'] = '.' if self.meta_info['subtitle'] != '' else ''
+        self.meta_info['is_institution'] = '-' if self.meta_info.get( 'institution' ) != '' else ''
+        self.meta_info['is_author'] = '.' if self.meta_info.get( 'author' ) != '' else ''
+        self.meta_info['is_subtitle'] = '.' if self.meta_info.get( 'subtitle' ) != '' else ''
 
+        self.firstslide_template = '\n'.join([
+            f'<h1>{self.meta_info["title"]}</h1>',
+            f'<h3>{self.meta_info["subtitle"]}</h3>',
+            f'<br>'
+        ] + [
+            f'<p><a href="mailto:{email}">{author}</a></p>'
+            for author, email in zip(
+                map(str.strip, self.meta_info['author'].split(',')),
+                map(str.strip, self.meta_info['email'].split(','))
+            )
+        ] + [
+            f'<p>{self.meta_info["date"]}</p>'
+        ]) + '\n'
 
-        if self.firstslide_template == "":
-             self.firstslide_template = """
-    <h1>%(title)s</h1>
-    <h3>%(subtitle)s</h3>
-    <br>
-    <p><a href="mailto:%(email)s">%(author)s</a> %(is_institution)s %(institution)s</p>
-    <p><small>%(email)s</small></p>
-    <p>%(date)s</p>
-"""
-
-        self.titleslide="""
-<section class="titleslide">""" + self.firstslide_template % self.meta_info + """
-</section>
-"""
-        if self.footer_template=="":
-            self.footer_template = """<b>%(title)s %(is_subtitle)s %(subtitle)s.</b> %(author)s%(is_institution)s %(institution)s. %(date)s"""
-
-        if self.write_footer:
-            self.footer_html = """<footer id=\"footer\">""" + self.footer_template % self.meta_info +  """<b id=\"slide_number\" style=\"padding: 1em;\"></b></footer>"""
-        elif self.page_number:
-            self.footer_html =  """<footer><b id=\"slide_number\"></b></footer>"""
-        else:
-            self.footer_html =  ""
-
+        self.titleslide = (
+            '<section class="titleslide">' + self.firstslide_template + '</section>'
+        )
+        self.footer_template = """<b>%(title)s %(is_subtitle)s %(subtitle)s.</b> %(author)s%(is_institution)s %(institution)s. %(date)s"""
 
 
     def _generate_header(self):
         rst2reveal_css = f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
-        pygments_css = f'<link rel="stylesheet" href="{self.pygments_href}">' if self.pygments_href else ''
-        custom_css = f'<link rel="stylesheet" href="{self.stylesheet_href}">' if self.stylesheet_href else ''
+        pygments_css = f'<link rel="stylesheet" href="{self.pygments_href}">' if PYGMENTS_STYLES else ''
+        custom_css = f'<link rel="stylesheet" href="{self.custom_css_href}">' if self.custom_css else ''
         header='\n'.join((
             '<!doctype html>',
-            f'   <html lang="{locale}">',
-	        '       <head>',
-		    '           <meta charset="utf-8">',
-		    f'           <title>{self.title}</title>',
-		    f'           <meta name="description" content="{self.title}">',
-		    f'           {self.parts["meta"]}',
-		    '           <meta name="apple-mobile-web-app-capable" content="yes" />',
-		    '           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
-		    '           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
-		    '           <link rel="stylesheet" href="reveal/dist/reveal.css">',
-		    f'           <link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
-		    '           <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
-		    '           <link rel="stylesheet" href="reveal/css/rst2reveal.css">',
-		    f'           {pygments_css}',
-		    f'           {rst2reveal_css}',
-		    '           <!-- Extra styles -->',
-            '           <style type="text/css">',
-            '               .reveal section {',
-            f'                   text-align: left;',
-            '               }',
-            '           </style>',
-		    f'           {custom_css}',
-	        '       </head>'
+            f'<html lang="{locale.getdefaultlocale()[0]}">',
+	        '     <head>',
+		    '         <meta charset="utf-8">',
+		    f'         <title>{self.title}</title>',
+		    f'         <meta name="description" content="{self.title}">',
+		    f'         {self.parts["meta"]}',
+		    '         <meta name="apple-mobile-web-app-capable" content="yes" />',
+		    '         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+		    '         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
+		    '         <link rel="stylesheet" href="reveal/dist/reveal.css">',
+		    f'         <link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
+		    '         <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
+		    '         <link rel="stylesheet" href="reveal/css/rst2reveal.css">',
+		    f'         {pygments_css}',
+		    f'         {rst2reveal_css}',
+		    '         <!-- Extra styles -->',
+		    f'         {custom_css}',
+	        '     </head>'
         ))
         return header
 
 
     def _generate_footer(self):
-        if self.page_number:
-            script_page_number = """<script>
-                        // Fires each time a new slide is activated
-                        Reveal.addEventListener( 'slidechanged', function( event ) {
-                            if(event.indexh > 0) {
-                                if(event.indexv > 0) {
-                                    val = event.indexh + '.' + event.indexv
-                                    document.getElementById('slide_number').innerHTML = val;
-                                }
-                                else{
-                                    document.getElementById('slide_number').innerHTML = event.indexh;
-                                }
-                            }
-                            else {
-                                document.getElementById('slide_number').innerHTML = '';
-                            }
-                        } );
-                    </script>
-"""
-        else:
-            script_page_number = ""
-
-        footer="""
-                <script src="reveal/dist/reveal.js"></script>
-                <script src="reveal/plugin/zoom/zoom.js"></script>
-                <script src="reveal/plugin/notes/notes.js"></script>
-                <script src="reveal/plugin/search/search.js"></script>
-                <script src="reveal/plugin/markdown/markdown.js"></script>
-                <script src="reveal/plugin/highlight/highlight.js"></script>
-                <script src="reveal/plugin/math/math.js"></script>
-                <script>
-			        Reveal.initialize({
-				        controls: %(controls)s,
-				        progress: true,
-				        history: true,
-				        overview: true,
-				        keyboard: true,
-				        loop: false,
-				        touch: true,
-				        rtl: false,
-                        hash: true,
-                        backgroundTransition: 'convex',
-				        center: true,
-				        mouseWheel: false,
-				        fragments: true,
-				        rollingLinks: false,
-				        transition: '%(transition)s',
-                        math: {
-                            // mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',
-                            config: 'TeX-AMS_HTML-full',
-                            TeX: {
-                                Macros: {
-                                    R: '\\mathbb{R}',
-                                    set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]
-                                }
-                            }
-                        },
-
-                        // Learn about plugins: https://revealjs.com/plugins/
-                        plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
-                        // Full list of configuration options available here:
-                        // https://github.com/hakimel/reveal.js#configuration
-			        });
-		        </script>
-                %(script_page_number)s
-                %(footer)s
-	        </body>
-        </html>""" % {
-            'transition' : self.transition,
-            'footer' : self.footer_html,
-            'script_page_number' : script_page_number,
-            'vertical_center' : 'true' if self.vertical_center else 'false',
-            'controls': 'true' if self.controls else 'false'
-        }
+        #if self.slidenos:
+        #    script_page_number = """<script>
+        #                // Fires each time a new slide is activated
+        #                Reveal.addEventListener( 'slidechanged', function( event ) {
+        #                    if(event.indexh > 0) {
+        #                        if(event.indexv > 0) {
+        #                            val = event.indexh + '.' + event.indexv
+        #                            document.getElementById('slide_number').innerHTML = val;
+        #                        }
+        #                        else{
+        #                            document.getElementById('slide_number').innerHTML = event.indexh;
+        #                        }
+        #                    }
+        #                    else {
+        #                        document.getElementById('slide_number').innerHTML = '';
+        #                    }
+        #                } );
+        #            </script>
+        #"""
+        script_page_number = ""
+        footer='\n'.join((
+            '       <script src="reveal/dist/reveal.js"></script>',
+            '       <script src="reveal/plugin/zoom/zoom.js"></script>',
+            '       <script src="reveal/plugin/notes/notes.js"></script>',
+            '       <script src="reveal/plugin/search/search.js"></script>',
+            '       <script src="reveal/plugin/markdown/markdown.js"></script>',
+            '       <script src="reveal/plugin/highlight/highlight.js"></script>',
+            '       <script src="reveal/plugin/math/math.js"></script>',
+            '       <script>',
+            '          Reveal.initialize({',
+            f'              controls: {json.dumps(self.controls)},',
+            f'              progress: {json.dumps(self.progress)},',
+            f'              transition: {self.transition!r},',
+            '              history: true,',
+            '              overview: true,',
+            '              keyboard: true,',
+            '              loop: false,',
+            '              touch: true,',
+            '              rtl: false,',
+            '              hash: true,',
+            "              backgroundTransition: 'convex',",
+            '              center: true,',
+            '              mouseWheel: false,',
+            '              fragments: true,',
+            '              rollingLinks: false,',
+            '              math: {',
+            "                 // mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',",
+            "                 config: 'TeX-AMS_HTML-full',",
+            "                 TeX: {",
+            "                     Macros: {",
+            "                         R: '\\mathbb{R}',",
+            "                         set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]",
+            "                     }",
+            "                 }",
+            "              },",
+            "              // Learn about plugins: https://revealjs.com/plugins/",
+            "              plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]",
+            "              // Full list of configuration options available here:",
+            "              // https://github.com/hakimel/reveal.js#configuration",
+            "          });",
+            '       </script>',
+            f'{script_page_number}',
+            #'%(footer)s',
+	        '</body>',
+            '</html>'
+        ))
         return footer
 
-
-if __name__ == '__main__':
-    # Create the object
-    parser = Parser(input_file='index.rst')
-    # Create the slides
-    parser.create_slides()

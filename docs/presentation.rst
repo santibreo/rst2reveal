@@ -1,13 +1,14 @@
-==========
+##########
 rst2reveal
-==========
+##########
+
 
 ReST to Reveal.js translator
 ++++++++++++++++++++++++++++
 
-:author: Julien Vitay
-:date: August 2013
-:email: julien.vitay@gmail.com
+:author: Julien Vitay, Santiago B. Pérez Pita
+:date: October 2022
+:email: julien.vitay@gmail.com, santibreo@gmail.com
 
 
 ReST to Reveal.js translator
