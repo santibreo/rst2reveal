@@ -5,7 +5,7 @@ from docutils import nodes
 from docutils.parsers.rst import directives, Directive
 from pathlib import Path
 
-from . import HAS_MATPLOTLIB, STATIC_PATH
+from . import HAS_MATPLOTLIB, STATIC_TMP_PATH
 if HAS_MATPLOTLIB:
     from . import plt
     from matplotlib import tempfile
@@ -13,6 +13,11 @@ if HAS_MATPLOTLIB:
 
 def align(argument: str):
     return directives.choice(argument, ('left', 'center', 'right'))
+
+def filename(argument: str):
+    invalid_chars = r'~`!@\#$%^&*()="\';,.<>\\|{}[]'
+    fname = ''.join((x for x in argument if x not in invalid_chars))
+    return fname
 
 def width_percentage(argument: str):
     return str(directives.nonnegative_int(argument.strip()[:-1])) + "%"
@@ -26,9 +31,10 @@ def zero_to_one(argument: str):
 
 class MatplotlibDirective(Directive):
     required_arguments = 0
-    optional_arguments = 4
+    optional_arguments = 5
     final_argument_whitespace = True
     option_spec = {
+        'name': filename,
         'align': align,
         'width': width_percentage,
         'alpha': zero_to_one,
@@ -37,14 +43,31 @@ class MatplotlibDirective(Directive):
     has_content = True
     node_class = nodes.raw
 
-    @staticmethod
+    @property
+    def temporary_filepath(self) -> str:
+        #  {{{
+        """Path to temporary SVG file to save plot """
+        if not (fname := self.options.get('name')):
+            temp_fd, temp_filepath = tempfile.mkstemp(
+                suffix=".svg", dir=STATIC_TMP_PATH, text=True
+            )
+            os.close(temp_fd)
+        else:
+            temp_filepath = os.path.realpath(
+                Path(STATIC_TMP_PATH / fname).with_suffix(".svg")
+            )
+        return temp_filepath
+        #  }}}
+
     def save_plot(
+        self,
         code_as_text: str,
         fig: 'plt.Figure',
         ax: 'plt.Axes',
         alpha: float
-    ) -> str:
+    ) -> Path:
         #  {{{
+        """Sves plot defined from matplotlib code chunk"""
         try:
             exec(code_as_text)
         except Exception as e:
@@ -56,12 +79,9 @@ class MatplotlibDirective(Directive):
         fig.patch.set_alpha(alpha)
         ax.patch.set_alpha(alpha)
         # Save the figure in a temporary SVG file
-        temp_fd, temp_filepath = tempfile.mkstemp(
-            suffix=".svg", dir=STATIC_PATH, text=True
-        )
-        os.close(temp_fd)
-        fig.savefig(temp_filepath, dpi=600, transparent=True)
-        return temp_filepath
+        fig_path = self.temporary_filepath
+        fig.savefig(fig_path, dpi=600, transparent=True)
+        return Path(fig_path)
         #  }}}
 
     def run(self):
@@ -70,24 +90,30 @@ class MatplotlibDirective(Directive):
         self.assert_has_content()
         if not HAS_MATPLOTLIB:
             return []
-
         code = '\n'.join(self.content)
         alpha = self.options.get('alpha') or 0
         width = self.options.get('width') or '75%'
         xkcd = self.options.get('xkcd', '') is None
         align = self.options.get('align') or 'center'
         if xkcd:
+            fig_path = ""
             with plt.xkcd(1):
                 fig, ax = plt.subplots()
                 fig_path = self.save_plot(code, fig, ax, alpha)
         else:
             fig, ax = plt.subplots()
             fig_path = self.save_plot(code, fig, ax, alpha)
+        print(fig_path)
         # Insert image as svg
         if not fig_path:
             return []
         box_width, box_height = 430, 350
         start = False
+        text = '\n'.join((
+            f'<div class="matplotlib-container r-stretch align-{align}">',
+            f'    <img source="static/img/{Path(fig_path).name}"/>',
+            f'</div>'
+        ))
         text = f'<div class="matplotlib-container r-stretch align-{align}">\n'
         with open(fig_path, 'r') as infile:
             for aline in infile:
@@ -101,7 +127,6 @@ class MatplotlibDirective(Directive):
                 elif start:
                     text += '  ' + aline
         text += '\n</div>\n'
-        os.remove(fig_path)
         return [nodes.raw('matplotlib', text, format='html')]
         #  }}}
 

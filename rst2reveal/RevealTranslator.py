@@ -31,7 +31,7 @@ class RST2RevealTranslator(HTMLTranslator):
         HTMLTranslator.__init__(self, document)
         self.math_output = 'mathjax'
         self.metadata = []
-        self.subsection_previous =False
+        self.subsection_previous = False
         self.inline_lists = False
 
 

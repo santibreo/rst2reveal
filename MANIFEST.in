@@ -1,1 +1,3 @@
-recursive-include rst2reveal/reveal *.css *.js *.eot *.svg *.woff *.py *.md *.html
+include README.rst
+graft rst2reveal/static
+graft rst2reveal/reveal

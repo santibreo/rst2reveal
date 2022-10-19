@@ -5,10 +5,9 @@ __version__ = '1.0'
 
 # Package main locations
 RST2REVEAL_PATH = Path(__file__).absolute().parent
-PROJECT_PATH = RST2REVEAL_PATH.parent
 
 # Reveal related locations
-REVEAL_PATH = PROJECT_PATH / 'reveal'
+REVEAL_PATH = RST2REVEAL_PATH / 'reveal'
 REVEAL_THEME_PATH = REVEAL_PATH / "dist" / "theme"
 REVEAL_THEMES = set(map(lambda x: x.stem, REVEAL_THEME_PATH.glob('*.css')))
 REVEAL_TRANSITIONS = [
@@ -23,9 +22,10 @@ REVEAL_TRANSITIONS = [
 ]
 
 # Custom static files locations
-STATIC_PATH = PROJECT_PATH / 'static'
+STATIC_PATH = RST2REVEAL_PATH / 'static'
 STATIC_CSS_PATH = STATIC_PATH / 'css'
 STATIC_FONT_PATH = STATIC_PATH / 'font'
+STATIC_TMP_PATH = STATIC_PATH / 'tmp'
 STATIC_JS_PATH = STATIC_PATH / 'js'
 PYGMENTS_CSS_PATH = STATIC_CSS_PATH / 'pygments'
 

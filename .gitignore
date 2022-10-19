@@ -2,3 +2,6 @@
 rst2reveal.egg-info/
 dist/
 build/
+docs/*
+!docs/presentation.conf
+!docs/presentation.rst

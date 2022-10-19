@@ -23,6 +23,9 @@ ReST to Reveal.js translator
 * **rst2reveal** ships some parts of Reveal.js (mainly ``.js`` and ``.css`` files), so it is released under the same MIT license.
 
 
+
+.. class:: data-background-image
+
 Basic ReST markup
 =================
 

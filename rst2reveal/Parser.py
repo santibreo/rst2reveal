@@ -16,7 +16,10 @@ from typing import Generator, Optional
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
 
 # Import custom directives
-from . import REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES, STATIC_CSS_PATH
+from . import (
+    REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES,
+    STATIC_CSS_PATH, STATIC_TMP_PATH
+)
 from .TwoColumnsDirective import *
 from .PygmentsDirective import *
 from .VideoDirective import *
@@ -65,14 +68,16 @@ class Parser:
         self,
         input_file: Path,
         output_file: Path,
-        theme: str ='default',
+        theme: str ='simple',
         transition: str = 'linear',
         custom_css: Optional[Path] = None,
-        pygments_style: str = '',
+        pygments_style: str = 'default',
+        header: bool = False,
         footer: bool = False,
+        *,
         slidenos: bool = False,
-        controls: bool = False,
-        progress: bool = False,
+        no_controls: bool = False,
+        no_progress: bool = False,
     ):
         """
         Constructor of the Parser class.
@@ -106,7 +111,7 @@ class Parser:
 
             * page_number: boolean stating if the slide number should be displayed (default: False).
 
-            * controls: boolean stating if the control arrows should be displayed (default: False).
+            * no_controls: boolean stating if the control arrows should be displayed (default: False).
 
             * firstslide_template: template string defining how the first slide will be rendered in HTML.
 
@@ -135,7 +140,9 @@ class Parser:
         You can also use your own fields in the templates.
 
         """
-
+        # Create empty temporary directory
+        shutil.rmtree(STATIC_TMP_PATH, ignore_errors=True)
+        STATIC_TMP_PATH.mkdir()
         # Input/Output files
         if not input_file.exists() and input_file.suffix == ".rst":
             raise ValueError(f"{input_file!s} is not a valid RST file!")
@@ -144,14 +151,15 @@ class Parser:
         self.static_path = self.output_file.parent / "static"
         self.static_css_path = self.static_path / "css"
         self.static_js_path = self.static_path / "js"
+        self.static_img_path = self.static_path / "img"
 
         # Style
         self.theme = theme
         self.custom_css = custom_css
         self.transition = transition
         self.slidenos = slidenos
-        self.controls = controls
-        self.progress = progress
+        self.no_controls = no_controls
+        self.no_progress = no_progress
         # Pygments
         self.pygments_style = pygments_style
 
@@ -175,14 +183,18 @@ class Parser:
         self.meta_info['subtitle'] = self.parts['subtitle']
         # Produce the html file
         self._produce_output()
+        # Copy generated temporary files
+        self._copy_temporary()
 
     def _copy_reveal(self):
+        #  {{{
         # Copy the reveal subfolder
         shutil.copytree(
             os.path.realpath(REVEAL_PATH),
             self.output_file.parent / 'reveal',
             dirs_exist_ok=True
         )
+        #  }}}
 
     def _copy_static(self):
         #  {{{
@@ -192,6 +204,7 @@ class Parser:
         # Create directory tree
         self.static_css_path.mkdir(parents=True, exist_ok=True)
         self.static_js_path.mkdir(exist_ok=True)
+        self.static_img_path.mkdir(exist_ok=True)
         # Copy basic rst2reveal.css
         rst2reveal_css_path = STATIC_CSS_PATH / "rst2reveal.css"
         destination_path = self.static_css_path / rst2reveal_css_path.name
@@ -221,6 +234,18 @@ class Parser:
             ).as_posix()
         else:
             self.pygments_href = ''
+        #  }}}
+
+    def _copy_temporary(self):
+        #  {{{
+        """
+        Copy static files to destination folder
+        """
+        # Copy generated images
+        for img in STATIC_TMP_PATH.glob('*.svg'):
+            if img.stat().st_size != 0:
+                shutil.copy2(img, self.static_img_path / img.name)
+            img.unlink()
         #  }}}
 
     def _produce_output(self):
@@ -261,17 +286,17 @@ class Parser:
         self.meta_info['is_subtitle'] = '.' if self.meta_info.get( 'subtitle' ) != '' else ''
 
         self.firstslide_template = '\n'.join([
-            f'<h1>{self.meta_info["title"]}</h1>',
-            f'<h3>{self.meta_info["subtitle"]}</h3>',
-            f'<br>'
+            f'  <h1>{self.meta_info["title"]}</h1>',
+            f'  <h3>{self.meta_info["subtitle"]}</h3>',
+            f'  <br>'
         ] + [
-            f'<p><a href="mailto:{email}">{author}</a></p>'
+            f'  <p><a href="mailto:{email}">{author}</a></p>'
             for author, email in zip(
                 map(str.strip, self.meta_info['author'].split(',')),
                 map(str.strip, self.meta_info['email'].split(','))
             )
         ] + [
-            f'<p>{self.meta_info["date"]}</p>'
+            f'  <p>{self.meta_info["date"]}</p>'
         ]) + '\n'
 
         self.titleslide = (
@@ -298,7 +323,6 @@ class Parser:
 		    '         <link rel="stylesheet" href="reveal/dist/reveal.css">',
 		    f'         <link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
 		    '         <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
-		    '         <link rel="stylesheet" href="reveal/css/rst2reveal.css">',
 		    f'         {pygments_css}',
 		    f'         {rst2reveal_css}',
 		    '         <!-- Extra styles -->',
@@ -309,25 +333,6 @@ class Parser:
 
 
     def _generate_footer(self):
-        #if self.slidenos:
-        #    script_page_number = """<script>
-        #                // Fires each time a new slide is activated
-        #                Reveal.addEventListener( 'slidechanged', function( event ) {
-        #                    if(event.indexh > 0) {
-        #                        if(event.indexv > 0) {
-        #                            val = event.indexh + '.' + event.indexv
-        #                            document.getElementById('slide_number').innerHTML = val;
-        #                        }
-        #                        else{
-        #                            document.getElementById('slide_number').innerHTML = event.indexh;
-        #                        }
-        #                    }
-        #                    else {
-        #                        document.getElementById('slide_number').innerHTML = '';
-        #                    }
-        #                } );
-        #            </script>
-        #"""
         script_page_number = ""
         footer='\n'.join((
             '       <script src="reveal/dist/reveal.js"></script>',
@@ -339,8 +344,8 @@ class Parser:
             '       <script src="reveal/plugin/math/math.js"></script>',
             '       <script>',
             '          Reveal.initialize({',
-            f'              controls: {json.dumps(self.controls)},',
-            f'              progress: {json.dumps(self.progress)},',
+            f'              controls: {json.dumps(not self.no_controls)},',
+            f'              progress: {json.dumps(not self.no_progress)},',
             f'              transition: {self.transition!r},',
             '              history: true,',
             '              overview: true,',

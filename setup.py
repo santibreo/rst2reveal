@@ -14,14 +14,7 @@
 #    exit(0)
 
 # setuptools
-try:
-    from setuptools import setup, find_packages
-    print('Checking for setuptools... OK')
-except:
-    print('Checking for setuptools... NO')
-    print('Error : Python package "setuptools" is required.')
-    print('You can install it from: http://pypi.python.org/pypi/setuptools')
-    exit(0)
+from setuptools import setup, find_packages
 
 # docutils
 try:
@@ -63,8 +56,8 @@ setup(
 	author='Julien Vitay',
 	author_email='julien.vitay@gmail.com',
 	url='https://bitbucket.org/vitay/rst2reveal',
-    packages=find_packages(),
-    package_data={'reveal': ['*.css', '*.js', '*.py']},
+    packages=['rst2reveal'],
+    package_data={'reveal': ['reveal'], 'static': ['static']},
     include_package_data=True,
     entry_points = {
         'console_scripts': [
