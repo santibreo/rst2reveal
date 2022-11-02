@@ -1,7 +1,7 @@
 **__pycache__/
-rst2reveal.egg-info/
+*.egg-info/
 dist/
 build/
-docs/*
+docs/
 !docs/presentation.conf
 !docs/presentation.rst
