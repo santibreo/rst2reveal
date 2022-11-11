@@ -28,6 +28,35 @@
 
 
 /*********************************************
+ * SMALL
+ *********************************************/
+
+span.small {
+    font-size: calc(0.667 * var(--r-main-font-size));
+    font-family: system-ui;
+}
+
+
+/*********************************************
+ * TOPIC
+ *********************************************/
+
+div.topic {
+    padding-left: 1em;
+    padding-right: 0.5em;
+    font-size: 0.9em;
+    border: 2px solid var(--r-link-color-dark);
+    border-radius: 0.5em;
+}
+
+.topic > p.topic-title {
+    text-decoration: underline;
+    margin-left: -0.5em;
+    font-size: var(--r-main-font-size);
+}
+
+
+/*********************************************
  * EPIGRAPH
  *********************************************/
 blockquote.epigraph{
@@ -37,7 +66,6 @@ blockquote.epigraph{
 blockquote.epigraph > p{
     margin-block: 0px;
 }
-
 
 /*********************************************
  * TWO COLUMNS
@@ -58,14 +86,11 @@ blockquote.epigraph > p{
  * IMAGES
  *********************************************/
 
-.align-center {
+.align-center,
+.reveal img.align-center {
     text-align: center;
-}
-.align-left {
-    text-align: left;
-}
-.align-right {
-    text-align: right;
+    margin-inline: auto;
+    display:block;
 }
 
 .reveal img.align-right {
@@ -82,12 +107,6 @@ blockquote.epigraph > p{
     box-shadow: none;
 }
 
-.reveal img.align-center {
-    display: inline;
-    float: center;
-    border: none;
-    box-shadow: none;
-}
 
 /*********************************************
  * VIDEOS
@@ -104,9 +123,17 @@ blockquote.epigraph > p{
 /*********************************************
  * CODE
  *********************************************/
+
 .reveal pre {
-    box: none;
-    box-shadow: none;
+    box-shadow: unset;
+}
+
+tt.docutils.literal {
+    border-block: 1px solid var(--r-background-color);
+    /*
+    border-radius: 5px;
+    padding-inline: 3px;
+    */
 }
 
 /*********************************************

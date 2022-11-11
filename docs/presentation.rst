@@ -11,6 +11,7 @@ ReST to Reveal.js translator
 :email: julien.vitay@gmail.com, santibreo@gmail.com
 
 
+
 ReST to Reveal.js translator
 ============================
 
@@ -22,9 +23,6 @@ ReST to Reveal.js translator
 
 * **rst2reveal** ships some parts of Reveal.js (mainly ``.js`` and ``.css`` files), so it is released under the same MIT license.
 
-
-
-.. class:: data-background-image
 
 Basic ReST markup
 =================
@@ -39,7 +37,7 @@ Basic ReST markup
 
 * Subscripts H\ :sub:`2`\ O and supscripts E = mc\ :sup:`2` :
 
-    ``H\ :sub:`2`\ O and E = mc\ :sup:`2```
+  ``H\ :sub:`2`\ O and E = mc\ :sup:`2```
 
 * `Links <http://www.example.com>`_ : ```Links <http://www.example.com>`_``
 
@@ -68,6 +66,7 @@ Lists
 
     1. This is a numbered list.
     2. It has two items too.
+
 
 Structure of a ReST document
 ============================
@@ -119,7 +118,6 @@ The choice of the marker characters is free. The line must be at least as long a
 
     Title of the first slide
     ========================
-
 
 
 Subslides
@@ -180,14 +178,14 @@ Directives processed by rst2reveal
 
 * Some of the standard directives are processed by rst2reveal:
 
-    * math
-    * topic, sidebar
-    * admonitions (note, warning)
-    * code-block
-    * image
-    * epigraph
-    * raw
-    * include
+  * math
+  * topic, sidebar
+  * admonitions (note, warning)
+  * code-block
+  * image
+  * epigraph
+  * raw
+  * include
 
 * Other may not be styled yet (but it can be extended) or do not make sense in this context (a table of content would display all slide titles).
 
@@ -196,9 +194,9 @@ Directives processed by rst2reveal
 
 * **rst2reveal** additionally implements several custom directives particularly suited for scientific presentations:
 
-    * video
-    * matplotlib
-    * columns
+  * video
+  * matplotlib
+  * columns
 
 * However, usage of these directives disrupts the compatibility of your input file with other ReST renderers (Sphinx, pandoc...).
 
@@ -238,9 +236,9 @@ It also understands the LaTeX ``align*`` mode:
         a &= b + c \\
         b &= a + d
 
+
 Images
 ======
-
 
 .. image:: http://collider.com/wp-content/uploads/monty-python-image-600x450.jpg
     :width: 40%
@@ -255,6 +253,7 @@ Images
 
 * You can provide either an URL or a path relative to the current directory.
 
+
 Images
 ======
 
@@ -262,11 +261,11 @@ Images
     :width: 50%
     :align: right
 
-* Images can also be aligned to the left or to the right, with the corresponding scaling:
+* Images can also be aligned to the left or to the right, with the corresponding scaling::
 
-``:width: 50%``
+    :width: 50%
+    :align: right
 
-``:align: right``
 
 Code blocks
 ===========
@@ -297,6 +296,9 @@ Code blocks
 
 * You can then use the ``code-block`` directive by specifying the language as an argument:
 
+.. html_attribute::
+   :data-line-numbers: 1-2|4-5
+
 .. code-block:: python
 
     from rst2reveal import Parser
@@ -304,6 +306,9 @@ Code blocks
                      output_file='index.html',
                      theme='beige' )
     parser.create_slides()
+
+.. html_attribute::
+   :data-line-numbers: 1-2|4-5
 
 Like this::
 
@@ -347,19 +352,20 @@ Code blocks
             std::cout << "Hello, World!" << std::endl;
         }
 
+
 Code blocks
 ===========
 
 * There is a big selection of themes you can use to highlight the code, by specifying the ``pygments_style`` option to rst2reveal (depending on your Pygments version)
 
-    :small:`monokai, manni, perldoc, borland, colorful, default, murphy, vs, trac, tango, fruity, autumn, bw, emacs, vim, pastie, friendly, native`
+  :small:`monokai, manni, perldoc, borland, colorful, default, murphy, vs, trac, tango, fruity, autumn, bw, emacs, vim, pastie, friendly, native`
 
 * Especially if you use a dark theme, it is advised to change the Pygments style (to monokai or manni for example).
 
 * You can specify the ``:linenos:`` option to the ``code-block`` directive to add line numbers.
 
 .. code-block:: c++
-    :linenos:
+    :number-lines:
 
     #include <stdio>
 
@@ -370,6 +376,7 @@ Code blocks
 
         std::cout << "Hello, World!" << std::endl;
     }
+
 
 Topic
 =====
@@ -386,13 +393,14 @@ The ``topic`` directive allows to highlight important blocks of text with a titl
 
 Source::
 
-    .. topic:: Equation
+    .. topic:: Equation:
 
         A leaky integrator is defined by:
 
         .. math::
 
             \tau \frac{dx(t)}{dt} + x(t) = f(t)
+
 
 Admonitions
 ===========
@@ -557,6 +565,7 @@ Simply use the ``matplotlib`` directive and write the corresponding matplotlib c
         ax.set_xlim(0, 10)
         ax.set_ylim(-1.0, 1.0)
 
+
 Matplotlib
 ==========
 
@@ -577,14 +586,15 @@ and:
 
 * The figure is internally generated in ``.svg`` format, and pasted in the HTML source.
 
+
 Matplotlib
 ==========
 
 * If you use a dark background, you can either:
 
-    * control the transparency of the figure background with the ``:alpha:`` option (between 0.0 and 1.0).
+  * control the transparency of the figure background with the ``:alpha:`` option (between 0.0 and 1.0).
+  * invert all colours and use a transparent background with the ``:invert:`` option.
 
-    * invert all colours and use a transparent background with the ``:invert:`` option.
 
 Matplotlib
 ==========

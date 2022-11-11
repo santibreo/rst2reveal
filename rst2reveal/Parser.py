@@ -21,11 +21,9 @@ from . import (
     STATIC_CSS_PATH, STATIC_TMP_PATH
 )
 from .TwoColumnsDirective import *
-from .PygmentsDirective import *
 from .VideoDirective import *
-from .PlotDirective import *
-from .SmallRole import *
-from .VspaceRole import *
+from .directives import *
+from .roles import *
 
 
 def write_pygments_css(pygments_style: Optional[str] = None
@@ -34,17 +32,20 @@ def write_pygments_css(pygments_style: Optional[str] = None
     Generates pygments style ``css`` for a given theme, all themes are
     generated if no theme is passed
     """
+    def add_specificity(line: str) -> str:
+        if not line.startswith('.'):
+            return line
+        return 'pre.code.literal-block > span' + line
+
     for style in PYGMENTS_STYLES:
         if pygments_style is not None and style != pygments_style:
             continue
         style_path = PYGMENTS_CSS_PATH / f"{style}.css"
         cmd_out = subprocess.run(
-            f'pygmentize -S {style} -f html', capture_output=True
+            f'pygmentize -S {style} -f html -a pre.code.literal-block '
+            f'> {os.path.realpath(style_path)}',
+            capture_output=True
         )
-        css_str = cmd_out.stdout.decode()
-        lines = ['.highlight ' + line for line in css_str.splitlines() if line]
-        with style_path.open('w', encoding="utf-8") as _file:
-            _file.write('\n'.join(lines) + '\n')
         yield style_path
 
 
@@ -122,7 +123,6 @@ class Parser:
             * %(title)s : will be replaced by the title of the presentation.
 
             * %(subtitle)s : subtitle of the presentation (either a level-2 header or the :subtitle: field, if any).
-
             * %(author)s : :author: field (if any).
 
             * %(institution)s : :institution: field (if any).
@@ -176,8 +176,9 @@ class Parser:
         self.html_writer = RST2RevealWriter()
         self.html_writer.translator_class = RST2RevealTranslator
         with self.input_file.open('r', encoding='utf-8') as infile:
-            self.parts = docutils.core.publish_parts(source=infile.read(),
-                                                     writer=self.html_writer)
+            self.parts = docutils.core.publish_parts(
+                source=infile.read(), writer=self.html_writer
+            )
         self.meta_info = parse_docutils_metadata(self.parts['metadata'])
         self.meta_info['title'] = self.parts['title']
         self.meta_info['subtitle'] = self.parts['subtitle']
@@ -250,34 +251,26 @@ class Parser:
 
     def _produce_output(self):
         self.title =  self.parts['title']
-        self._analyse_metainfo()
-
         header = self._generate_header()
+        self._generate_titleslide()
         body = self._generate_body()
-        footer = self._generate_footer()
+        footer = self._generate_body_end()
 
         document_content = header + body + footer
 
         with self.output_file.open('w', encoding='utf-8') as wfile:
             wfile.write(document_content)
 
-    def _generate_body(self):
-
-        body =  """
-	        <body>
-		        <div class="reveal">
-			        <div class="slides">
-%(titleslide)s
-%(body)s
-			        </div>
-		        </div>
-        """ % {'body': self.parts['body'],
-                'titleslide' : self.titleslide}
-
-        return body
-
-    def _analyse_metainfo(self):
-        self._generate_titleslide()
+    def _generate_body(self) -> str:
+        return '\n'.join((
+	        ' '*2 + '<body>',
+		    ' '*4 + '<div class="reveal">',
+			' '*6 + '<div class="slides">',
+            self.titleslide,
+            self.parts['body'],
+			' '*6 + '</div>',
+		    ' '*4 + '</div>'
+        )) + '\n'
 
     def _generate_titleslide(self):
         # Separators
@@ -285,23 +278,21 @@ class Parser:
         self.meta_info['is_author'] = '.' if self.meta_info.get( 'author' ) != '' else ''
         self.meta_info['is_subtitle'] = '.' if self.meta_info.get( 'subtitle' ) != '' else ''
 
-        self.firstslide_template = '\n'.join([
-            f'  <h1>{self.meta_info["title"]}</h1>',
-            f'  <h3>{self.meta_info["subtitle"]}</h3>',
-            f'  <br>'
+        self.titleslide = '\n'.join([
+            ' '*8 + '<section class="titleslide">',
+            ' '*10 + f'<h1>{self.meta_info["title"]}</h1>',
+            ' '*10 + f'<h3>{self.meta_info["subtitle"]}</h3>',
+            ' '*10 + f'<br>'
         ] + [
-            f'  <p><a href="mailto:{email}">{author}</a></p>'
+            ' '*10 + f'<p><a href="mailto:{email}">{author}</a></p>'
             for author, email in zip(
                 map(str.strip, self.meta_info['author'].split(',')),
                 map(str.strip, self.meta_info['email'].split(','))
             )
         ] + [
-            f'  <p>{self.meta_info["date"]}</p>'
+            ' '*10 + f'<p>{self.meta_info["date"]}</p>',
+            ' '*8 + '</section>',
         ]) + '\n'
-
-        self.titleslide = (
-            '<section class="titleslide">' + self.firstslide_template + '</section>'
-        )
         self.footer_template = """<b>%(title)s %(is_subtitle)s %(subtitle)s.</b> %(author)s%(is_institution)s %(institution)s. %(date)s"""
 
 
@@ -309,77 +300,75 @@ class Parser:
         rst2reveal_css = f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
         pygments_css = f'<link rel="stylesheet" href="{self.pygments_href}">' if PYGMENTS_STYLES else ''
         custom_css = f'<link rel="stylesheet" href="{self.custom_css_href}">' if self.custom_css else ''
-        header='\n'.join((
+        return '\n'.join([
             '<!doctype html>',
             f'<html lang="{locale.getdefaultlocale()[0]}">',
-	        '     <head>',
-		    '         <meta charset="utf-8">',
-		    f'         <title>{self.title}</title>',
-		    f'         <meta name="description" content="{self.title}">',
-		    f'         {self.parts["meta"]}',
-		    '         <meta name="apple-mobile-web-app-capable" content="yes" />',
-		    '         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
-		    '         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
-		    '         <link rel="stylesheet" href="reveal/dist/reveal.css">',
-		    f'         <link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
-		    '         <link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
-		    f'         {pygments_css}',
-		    f'         {rst2reveal_css}',
-		    '         <!-- Extra styles -->',
-		    f'         {custom_css}',
-	        '     </head>'
-        ))
-        return header
+	        ' '*2 + '<head>',
+		    ' '*4 + '<meta charset="utf-8">',
+		    ' '*4 + f'<title>{self.title}</title>',
+		    ' '*4 + f'<meta name="description" content="{self.title}">',
+        ] + [
+		    ' '*4 + x for x in self.parts["meta"].splitlines()
+        ] + [
+		    ' '*4 + '<meta name="apple-mobile-web-app-capable" content="yes" />',
+		    ' '*4 + '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+		    ' '*4 + '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
+		    ' '*4 + '<link rel="stylesheet" href="reveal/dist/reveal.css">',
+		    ' '*4 + f'<link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
+		    ' '*4 + '<link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
+		    ' '*4 + f'{pygments_css}',
+		    ' '*4 + f'{rst2reveal_css}',
+		    ' '*4 + '<!-- Extra styles -->',
+		    ' '*4 + f'{custom_css}',
+	        ' '*2 + '</head>'
+        ]) + '\n'
 
 
-    def _generate_footer(self):
-        script_page_number = ""
-        footer='\n'.join((
-            '       <script src="reveal/dist/reveal.js"></script>',
-            '       <script src="reveal/plugin/zoom/zoom.js"></script>',
-            '       <script src="reveal/plugin/notes/notes.js"></script>',
-            '       <script src="reveal/plugin/search/search.js"></script>',
-            '       <script src="reveal/plugin/markdown/markdown.js"></script>',
-            '       <script src="reveal/plugin/highlight/highlight.js"></script>',
-            '       <script src="reveal/plugin/math/math.js"></script>',
-            '       <script>',
-            '          Reveal.initialize({',
-            f'              controls: {json.dumps(not self.no_controls)},',
-            f'              progress: {json.dumps(not self.no_progress)},',
-            f'              transition: {self.transition!r},',
-            '              history: true,',
-            '              overview: true,',
-            '              keyboard: true,',
-            '              loop: false,',
-            '              touch: true,',
-            '              rtl: false,',
-            '              hash: true,',
-            "              backgroundTransition: 'convex',",
-            '              center: true,',
-            '              mouseWheel: false,',
-            '              fragments: true,',
-            '              rollingLinks: false,',
-            '              math: {',
-            "                 // mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',",
-            "                 config: 'TeX-AMS_HTML-full',",
-            "                 TeX: {",
-            "                     Macros: {",
-            "                         R: '\\mathbb{R}',",
-            "                         set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]",
-            "                     }",
-            "                 }",
-            "              },",
-            "              // Learn about plugins: https://revealjs.com/plugins/",
-            "              plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]",
-            "              // Full list of configuration options available here:",
-            "              // https://github.com/hakimel/reveal.js#configuration",
-            "          });",
-            "          Reveal.initialize({ slideNumber: 'c/t' });" if self.slidenos else '',
-            '       </script>',
-            f'{script_page_number}',
-            #'%(footer)s',
-	        '</body>',
+    def _generate_body_end(self):
+        return '\n'.join((
+            ' '*4  + '<script src="reveal/dist/reveal.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/zoom/zoom.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/notes/notes.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/search/search.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/markdown/markdown.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/highlight/highlight.js"></script>',
+            ' '*4  + '<script src="reveal/plugin/math/math.js"></script>',
+            ' '*4  + '<script>',
+            ' '*6  + 'Reveal.initialize({',
+            ' '*8  + f'controls: {json.dumps(not self.no_controls)},',
+            ' '*8  + f'progress: {json.dumps(not self.no_progress)},',
+            ' '*8  + f'transition: {self.transition!r},',
+            ' '*8  + 'history: true,',
+            ' '*8  + 'overview: true,',
+            ' '*8  + 'keyboard: true,',
+            ' '*8  + 'loop: false,',
+            ' '*8  + 'touch: true,',
+            ' '*8  + 'rtl: false,',
+            ' '*8  + 'hash: true,',
+            ' '*8  + "backgroundTransition: 'convex',",
+            ' '*8  + 'center: true,',
+            ' '*8  + 'mouseWheel: false,',
+            ' '*8  + 'fragments: true,',
+            ' '*8  + 'rollingLinks: false,',
+            ' '*8  + 'math: {',
+            ' '*10 + "// mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',",
+            ' '*10 + "config: 'TeX-AMS_HTML-full',",
+            ' '*10 + "TeX: {",
+            ' '*12 + "Macros: {",
+            ' '*14 + "R: '\\mathbb{R}',",
+            ' '*16 + "set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]",
+            ' '*14 + "}",
+            ' '*12 + "}",
+            ' '*10 + "},",
+            ' '*10 + "// Learn about plugins: https://revealjs.com/plugins/",
+            ' '*10 + "plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]",
+            ' '*10 + "// Full list of configuration options available here:",
+            ' '*10 + "// https://github.com/hakimel/reveal.js#configuration",
+            ' '*8  + "}",
+            ' '*6  + ");",
+            ' '*6  + "Reveal.initialize({ slideNumber: 'c/t' });" if self.slidenos else '',
+            ' '*4  + '</script>',
+	        ' '*2  + '</body>',
             '</html>'
-        ))
-        return footer
+        )) + '\n'
 
