@@ -332,14 +332,14 @@ The default way to show some code is to end a line with ``::`` and indent the co
 <li>If you want to color-highlight the code, you need to have the Python package <a class="reference external" href="http://www.pygments.org">Pygments</a> installed on your computer.</li>
 <li>You can then use the <tt class="docutils literal"><span class="pre">code-block</span></tt> directive by specifying the language as an argument:</li>
 </ul>
-<pre class="code python literal-block" data-line-numbers="1-2|4-5">
+<pre class="code python literal-block" data-line-numbers="1-2|4-5" data-noescape="">
 <span class="kn">from</span> <span class="nn">rst2reveal</span> <span class="kn">import</span> <span class="n">Parser</span>
 <span class="n">parser</span> <span class="o">=</span> <span class="n">Parser</span><span class="p">(</span> <span class="n">input_file</span><span class="o">=</span><span class="s1">'index.rst'</span><span class="p">,</span>
                  <span class="n">output_file</span><span class="o">=</span><span class="s1">'index.html'</span><span class="p">,</span>
                  <span class="n">theme</span><span class="o">=</span><span class="s1">'beige'</span> <span class="p">)</span>
 <span class="n">parser</span><span class="o">.</span><span class="n">create_slides</span><span class="p">()</span>
 </pre>
-<p data-line-numbers="1-2|4-5">Like this:</p>
+<p>Like this:</p>
 <pre class="literal-block">
 .. code-block:: python
 

@@ -350,6 +350,7 @@ class Parser:
             ' '*8  + 'mouseWheel: false,',
             ' '*8  + 'fragments: true,',
             ' '*8  + 'rollingLinks: false,',
+            #' '*8  + 'highlight: {highlightOnLoad: false},',
             ' '*8  + 'math: {',
             ' '*10 + "// mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',",
             ' '*10 + "config: 'TeX-AMS_HTML-full',",

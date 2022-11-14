@@ -42,6 +42,25 @@ class RST2RevealTranslator(HTMLTranslator):
         #print(result)
         return result
 
+    @staticmethod
+    def _get_classes_string(node) -> str:
+        classes = node.attributes.get('classes', [])
+        return (
+            ' class=' + ' '.join(map('"{}"'.format, classes))
+            if classes else ''
+        )
+
+    @staticmethod
+    def _get_attributes_string(node) -> str:
+        attributes = node.attributes.get('html_attributes', {})
+        attr_chunk = list()
+        for attr, values in attributes.items():
+            values = list(filter(lambda x: x!='', values))
+            attr_vals = ('="' + ' '.join(values) + '"') if values else ''
+            attr_chunk.append(attr + attr_vals)
+        return ' ' + ' '.join(attr_chunk) if attributes else ''
+
+
     def depart_header(self, node):
         start = self.context.pop()
         header = [self.starttag(node, 'section')]
@@ -88,18 +107,8 @@ class RST2RevealTranslator(HTMLTranslator):
             del self.body[:]
 
     def visit_section(self, node):
-        classes = node.attributes.get('classes', [])
-        class_str = (
-            ' class=' + ' '.join(map('"{}"'.format, classes))
-            if classes else ''
-        )
-        attributes = node.attributes.get('html_attributes', {})
-        attr_chunk = list()
-        for attr, values in attributes.items():
-            values = list(filter(lambda x: x!='', values))
-            attr_vals = ('="' + ' '.join(values) + '"') if values else ''
-            attr_chunk.append(attr + attr_vals)
-        attr_str = ' ' + ' '.join(attr_chunk) if attributes else ''
+        class_str = self._get_classes_string(node)
+        attr_str = self._get_attributes_string(node)
         if self.section_level == 0:
             # Open new section
             self.body.append(' '*8 + f'<section{class_str}{attr_str}>\n')
@@ -145,12 +154,6 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_docinfo_item(self):
         pass
 
-    def visit_field(self, node):
-        pass
-
-    def depart_field(self, node):
-        pass
-
     def visit_field_body(self, node):
         field_names = re.findall(r'<field_name>(.+)</field_name>', str(node.parent[0]))
         field_values = re.findall(r'<field_body>(.+)</field_body>', str(node.parent[1]))
@@ -162,3 +165,16 @@ class RST2RevealTranslator(HTMLTranslator):
     def depart_field_body(self, node):
         pass
 
+    #def visit_literal_block(self, node) -> None:
+    #    class_str = self._get_classes_string(node)
+    #    attr_str = self._get_attributes_string(node)
+    #    if 'code' in node['classes']:
+    #        self.body.append(' '*8 + f'<pre>\n')
+    #        self.body.append(self.starttag(node, 'code', ''))
+    #    else:
+    #        self.body.append(self.starttag(node, 'pre', '', CLASS='literal-block'))
+
+    #def depart_literal_block(self, node) -> None:
+    #    if 'code' in node['classes']:
+    #        self.body.append('</code>')
+    #    self.body.append('</pre>\n')

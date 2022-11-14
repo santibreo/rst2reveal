@@ -298,6 +298,7 @@ Code blocks
 
 .. html_attribute::
    :data-line-numbers: 1-2|4-5
+   :data-noescape:
 
 .. code-block:: python
 
@@ -307,8 +308,6 @@ Code blocks
                      theme='beige' )
     parser.create_slides()
 
-.. html_attribute::
-   :data-line-numbers: 1-2|4-5
 
 Like this::
 
