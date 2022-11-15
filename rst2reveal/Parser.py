@@ -10,7 +10,9 @@ import shutil
 import json
 import docutils.core
 from pathlib import Path
+from datetime import datetime
 from xml.etree import ElementTree
+from datetime import datetime
 from typing import Generator, Optional
 
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
@@ -32,32 +34,53 @@ def write_pygments_css(pygments_style: Optional[str] = None
     Generates pygments style ``css`` for a given theme, all themes are
     generated if no theme is passed
     """
-    def add_specificity(line: str) -> str:
-        if not line.startswith('.'):
-            return line
-        return 'pre.code.literal-block > span' + line
-
     for style in PYGMENTS_STYLES:
         if pygments_style is not None and style != pygments_style:
             continue
         style_path = PYGMENTS_CSS_PATH / f"{style}.css"
-        cmd_out = subprocess.run(
-            f'pygmentize -S {style} -f html -a pre.code.literal-block '
-            f'> {os.path.realpath(style_path)}',
-            capture_output=True
-        )
+        with style_path.open('w', encoding='utf-8') as css:
+            cmd_out = subprocess.run(
+                f'pygmentize -S {style} -f html -a pre.code.literal-block',
+                capture_output=True
+            )
+            if cmd_out.stderr:
+                raise SystemError(
+                    'Something went wrong when writting CSS:\n\t'
+                    + cmd_out.stderr.decode()
+                )
+            css.write(cmd_out.stdout.decode())
         yield style_path
 
 
-def parse_docutils_metadata(metadata_str: str) -> dict[str, str]:
+def parse_docutils_meta(meta_str: str) -> dict[str, str]:
     """
-    Parses docutils metadata tag
+    Converts docutils ``meta`` tag into a dictionary of useful values
     """
-    metadata = dict()
-    for line in metadata_str.splitlines():
-        field, value = map(str.strip, line.split("=", maxsplit=1))
-        metadata[field] = ''.join(ElementTree.fromstring(value).itertext())
+    metadata = dict(authors = list(), date = '')
+    for line in meta_str.splitlines():
+        tree = ElementTree.fromstring(line)
+        if tree.attrib.get('name', '') == 'author':
+            author, _, email = tree.attrib['content'].partition('<')
+            metadata['authors'].append((author.strip(), email.replace('>', '')))
+        elif tree.attrib.get('name', '') == 'date':
+            metadata['date'] = tree.attrib['content'].strip()
+    if metadata['date']:
+        try:  # You can pass a date format to use today's date
+            metadata['date'] = datetime.now().strftime(metadata['date'])
+        except ValueError:  # If it is not a date format just use it
+            pass
+    else:
+        metadata['date'] = datetime.now().strftime('%B, %Y')
     return metadata
+
+def author_to_link(author:str, email:str = ''):
+    return (
+        '<p>'
+        + (f'<a href="mailto:{email}">' if email else '')
+        + author
+        + ('</a>' if email else '')
+        + '</p>'
+    )
 
 
 class Parser:
@@ -179,7 +202,7 @@ class Parser:
             self.parts = docutils.core.publish_parts(
                 source=infile.read(), writer=self.html_writer
             )
-        self.meta_info = parse_docutils_metadata(self.parts['metadata'])
+        self.meta_info = parse_docutils_meta(self.parts['meta'])
         self.meta_info['title'] = self.parts['title']
         self.meta_info['subtitle'] = self.parts['subtitle']
         # Produce the html file
@@ -274,7 +297,6 @@ class Parser:
 
     def _generate_titleslide(self):
         # Separators
-        self.meta_info['is_institution'] = '-' if self.meta_info.get( 'institution' ) != '' else ''
         self.meta_info['is_author'] = '.' if self.meta_info.get( 'author' ) != '' else ''
         self.meta_info['is_subtitle'] = '.' if self.meta_info.get( 'subtitle' ) != '' else ''
 
@@ -284,11 +306,7 @@ class Parser:
             ' '*10 + f'<h3>{self.meta_info["subtitle"]}</h3>',
             ' '*10 + f'<br>'
         ] + [
-            ' '*10 + f'<p><a href="mailto:{email}">{author}</a></p>'
-            for author, email in zip(
-                map(str.strip, self.meta_info['author'].split(',')),
-                map(str.strip, self.meta_info['email'].split(','))
-            )
+            ' '*10 + author_to_link(x, y) for x, y in self.meta_info['authors']
         ] + [
             ' '*10 + f'<p>{self.meta_info["date"]}</p>',
             ' '*8 + '</section>',

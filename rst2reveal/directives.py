@@ -159,5 +159,5 @@ class MatplotlibDirective(Image):
         #  }}}
 
 directives.register_directive('code-block', CodeBlockDirective)
-directives.register_directive('html_attribute', HTMLAttributeDirective)
+directives.register_directive('html-attribute', HTMLAttributeDirective)
 directives.register_directive('matplotlib', MatplotlibDirective)

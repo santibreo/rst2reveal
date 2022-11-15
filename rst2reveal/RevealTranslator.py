@@ -132,39 +132,6 @@ class RST2RevealTranslator(HTMLTranslator):
         self.section_level -= 1
         self.inline_lists = False
 
-    def visit_docinfo(self, node):
-        self.context.append(len(self.body))
-        self.in_docinfo = True
-
-    def depart_docinfo(self, node):
-        self.in_docinfo = False
-        start = self.context.pop()
-        self.docinfo = self.body[start:]
-        self.body = []
-
-    def visit_docinfo_item(self, node, name, meta=True):
-        self.metadata.append(name + '=' + str(node)+'\n')
-        self.body.append(self.starttag(node, 'tr', ''))
-        if len(node):
-            if isinstance(node[0], nodes.Element):
-                node[0]['classes'].append('first')
-            if isinstance(node[-1], nodes.Element):
-                node[-1]['classes'].append('last')
-
-    def depart_docinfo_item(self):
-        pass
-
-    def visit_field_body(self, node):
-        field_names = re.findall(r'<field_name>(.+)</field_name>', str(node.parent[0]))
-        field_values = re.findall(r'<field_body>(.+)</field_body>', str(node.parent[1]))
-        if len(field_names) > 0 and len(field_values) > 0:
-            name = field_names[0]
-            value = field_values[0]
-            self.metadata.append(name + '=' + value + '\n')
-
-    def depart_field_body(self, node):
-        pass
-
     #def visit_literal_block(self, node) -> None:
     #    class_str = self._get_classes_string(node)
     #    attr_str = self._get_attributes_string(node)

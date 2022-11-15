@@ -6,9 +6,8 @@ rst2reveal
 ReST to Reveal.js translator
 ++++++++++++++++++++++++++++
 
-:author: Julien Vitay, Santiago B. Pérez Pita
-:date: October 2022
-:email: julien.vitay@gmail.com, santibreo@gmail.com
+:author: Julien Vitay <julien.vitay@gmail.com>
+:author: Santiago B. Pérez Pita <santibreo@gmail.com>
 
 
 
@@ -296,7 +295,7 @@ Code blocks
 
 * You can then use the ``code-block`` directive by specifying the language as an argument:
 
-.. html_attribute::
+.. html-attribute::
    :data-line-numbers: 1-2|4-5
    :data-noescape:
 
@@ -570,16 +569,16 @@ Matplotlib
 
 * You basically only need to write everything you would normally put between:
 
-.. code-block:: python
+  .. code-block:: python
 
-    from matplotlib import pylab as plt
-    fig, ax = plt.subplots()
+      from matplotlib import pylab as plt
+      fig, ax = plt.subplots()
 
-and:
+  and:
 
-.. code-block:: python
+  .. code-block:: python
 
-    plt.show()
+      plt.show()
 
 * The python code is interpreted "as-if" with ``exec`` statements, so be careful with what you write!
 
