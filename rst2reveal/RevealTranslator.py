@@ -5,7 +5,7 @@ import re
 
 from docutils import nodes
 from docutils.writers.html4css1 import HTMLTranslator, Writer
-
+from typing import Never
 
 
 class RST2RevealWriter(Writer):
@@ -60,8 +60,7 @@ class RST2RevealTranslator(HTMLTranslator):
             attr_chunk.append(attr + attr_vals)
         return ' ' + ' '.join(attr_chunk) if attributes else ''
 
-
-    def depart_header(self, node):
+    def depart_header(self, node) -> Never:
         start = self.context.pop()
         header = [self.starttag(node, 'section')]
         header.extend(self.body[start:])
@@ -70,7 +69,7 @@ class RST2RevealTranslator(HTMLTranslator):
         self.header.extend(header)
         del self.body[start:]
 
-    def visit_title(self, node):
+    def visit_title(self, node) -> Never:
         """Only 6 section levels are supported by HTML."""
         check_id = 0  # TODO: is this a bool (False) or a counter?
         close_tag = ' '*12 + '</p>\n'
@@ -97,7 +96,7 @@ class RST2RevealTranslator(HTMLTranslator):
             close_tag = ' '*12 + '</h2>\n'
         self.context.append(close_tag)
 
-    def depart_title(self, node):
+    def depart_title(self, node) -> Never:
         self.body.append(self.context.pop())
         if self.in_document_title:
             self.title = self.body[self.in_document_title:-1]
@@ -106,7 +105,7 @@ class RST2RevealTranslator(HTMLTranslator):
             self.html_title.extend(self.body)
             del self.body[:]
 
-    def visit_section(self, node):
+    def visit_section(self, node) -> Never:
         class_str = self._get_classes_string(node)
         attr_str = self._get_attributes_string(node)
         if self.section_level == 0:
@@ -120,7 +119,7 @@ class RST2RevealTranslator(HTMLTranslator):
         self.body.append(' '*10 + f'<section{class_str}{attr_str}>\n')
         self.section_level += 1
 
-    def depart_section(self, node):
+    def depart_section(self, node) -> Never:
         # When section has subsections, subsection tag is closed at depart
         if not (self.section_level == 1 and self.is_subsection_previous):
             # Close subsection
@@ -131,6 +130,16 @@ class RST2RevealTranslator(HTMLTranslator):
             self.body.append(' '*8 + '</section>\n')
         self.section_level -= 1
         self.inline_lists = False
+
+    def visit_column(self, node) -> Never:
+        if 'column-left' in node.attributes['classes']:
+            self.body.append(' '*12 + '<div class="columns">\n')
+        self.visit_container(node)
+
+    def depart_column(self, node) -> Never:
+        self.depart_container(node)
+        if 'column-right' in node.attributes['classes']:
+            self.body.append(' '*12 + '</div>\n')
 
     #def visit_literal_block(self, node) -> None:
     #    class_str = self._get_classes_string(node)

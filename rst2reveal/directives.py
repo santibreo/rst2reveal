@@ -1,12 +1,17 @@
+"""
+Additional directives to get the most out of Reveal.js
+"""
+
 from __future__ import annotations
 import os
 import re
 from pathlib import Path
 from docutils import nodes
-from docutils.parsers.rst import directives
 from docutils.parsers.rst import Directive
+from docutils.parsers.rst import directives
 from docutils.parsers.rst.directives.images import Image
 from docutils.parsers.rst.directives.body import CodeBlock
+from docutils.parsers.rst.directives.body import Container
 from typing import Union, Literal, Callable
 from . import HAS_MATPLOTLIB, STATIC_TMP_PATH
 from .transforms import HTMLAttributeTransform
@@ -19,7 +24,7 @@ if HAS_MATPLOTLIB:
 
 def filename(argument: str) -> str:
     invalid_chars = r'~`!@\#$%^&*()="\';,.<>\\|/{}[]'
-    fname = ''.join((x for x in argument if x not in invalid_chars))
+    fname: str = ''.join((x for x in argument if x not in invalid_chars))
     return fname
 
 
@@ -31,6 +36,15 @@ def zero_to_one(argument: str) -> int:
 
 
 class CodeBlockDirective(CodeBlock):
+    #  {{{
+    """
+    Block of language-specific code. It is parsed using Pygments.
+
+    Option ``linenos`` has been added to be used instead of ``number-lines``
+    (less common).
+
+    TODO: Use Reveal.js to highlight code and its capabilities to navigate it.
+    """
     option_spec = CodeBlock.option_spec.copy()
     option_spec['linenos'] = directives.flag
 
@@ -39,12 +53,40 @@ class CodeBlockDirective(CodeBlock):
         if self.options.pop('linenos', '') is None:
             self.options['number-lines'] = None
         return super().run()
+    #  }}}
+
+
+class ColumnDirective(Container):
+    #  {{{
+    """
+    Allows 2-columns layout. Strongly based on ``container`` directive.
+    """
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+    option_spec = {}
+    has_content = True
+
+    def run(self):
+        if (class_tail:=self.arguments[0].lower()) in ('left', 'right'):
+            self.arguments[0] = f"column-{class_tail}"
+        else:
+            raise self.error(
+                'Invalid class attribute value for "%s" directive: "%s".'
+                % (self.name, self.arguments[0])
+            )
+        node = super().run()[0]
+        node.__class__.__name__ = 'column'
+        return [node]
+    #  }}}
 
 
 class HTMLAttributeDirective(Directive):
+    #  {{{
     """
-    Set a additional attributes on the next element. A "pending" element is
-    inserted, and a transform does the work later.
+    Set additional attributes on the next element. A "pending" element is
+    inserted, and a transform does the work later. Strongly based on class
+    directive.
     """
 
     required_arguments = 0
@@ -73,9 +115,16 @@ class HTMLAttributeDirective(Directive):
         self.state_machine.document.note_pending(pending)
         node_list.append(pending)
         return node_list
+    #  }}}
 
 
 class MatplotlibDirective(Image):
+    #  {{{
+    """
+    Allow creation of SVG plots on the fly using `matplotlib\
+    <https://matplotlib.org/>`_ capabilities. Only ``numpy`` and ``pandas`` are
+    allowed to be imported.
+    """
     required_arguments: int = 0
     optional_arguments: int = 10
     final_argument_whitespace: bool = True
@@ -157,7 +206,12 @@ class MatplotlibDirective(Image):
         node.attributes['classes'].append('matplotlib-container')
         return [node]
         #  }}}
+    #  }}}
 
+
+# Register nodes and directives
+nodes._add_node_class_names(['column'])
+directives.register_directive('column', ColumnDirective)
 directives.register_directive('code-block', CodeBlockDirective)
 directives.register_directive('html-attribute', HTMLAttributeDirective)
 directives.register_directive('matplotlib', MatplotlibDirective)

@@ -12,7 +12,6 @@ import docutils.core
 from pathlib import Path
 from datetime import datetime
 from xml.etree import ElementTree
-from datetime import datetime
 from typing import Generator, Optional
 
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
@@ -22,7 +21,6 @@ from . import (
     REVEAL_PATH, PYGMENTS_CSS_PATH, PYGMENTS_STYLES,
     STATIC_CSS_PATH, STATIC_TMP_PATH
 )
-from .TwoColumnsDirective import *
 from .VideoDirective import *
 from .directives import *
 from .roles import *
@@ -44,9 +42,17 @@ def write_pygments_css(pygments_style: Optional[str] = None
                 capture_output=True
             )
             if cmd_out.stderr:
-                raise SystemError(
-                    'Something went wrong when writting CSS:\n\t'
+                # Some styles raise errors, use 'default' as fallback
+                print(
+                    'ERROR: Something went wrong when writting CSS: '
                     + cmd_out.stderr.decode()
+                    + "Falling back to 'default' style."
+                )
+                style = 'default'
+                style_path = PYGMENTS_CSS_PATH / f"{style}.css"
+                cmd_out = subprocess.run(
+                    f'pygmentize -S {style} -f html -a pre.code.literal-block',
+                    capture_output=True
                 )
             css.write(cmd_out.stdout.decode())
         yield style_path

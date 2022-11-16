@@ -73,11 +73,11 @@ blockquote.epigraph > p{
 .columns{
     width: 100%;
   }
-.columns div.left{
+.columns  > div.column-left{
     width: 47%;
     float: left;
 }
-.columns div.right{
+.columns > div.column-right{
     width: 47%;
     float: right;
 }
