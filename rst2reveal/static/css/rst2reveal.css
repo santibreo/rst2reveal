@@ -126,6 +126,7 @@ blockquote.epigraph > p{
 
 .reveal pre {
     box-shadow: unset;
+    font-size: 0.8em;
 }
 
 tt.docutils.literal {
