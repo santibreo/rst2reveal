@@ -5,64 +5,66 @@
 ################################################
 
 # check python version
-#import sys
-#if not sys.version_info[:2] >= (2, 6):
+# import sys
+# if not sys.version_info[:2] >= (2, 6):
 #    print 'Error : rst2reveal requires at least Python 2.6.'
 #    exit(0)
-#if sys.version_info[:2] >= (3, 0):
+# if sys.version_info[:2] >= (3, 0):
 #    print 'Error : rst2reveal works with Python 2.x, not yet with 3.x.'
 #    exit(0)
 
 # setuptools
-from setuptools import setup, find_packages
+from setuptools import setup
+
+setup()
 
 # docutils
-try:
-    import docutils
-    print('Checking for docutils... OK')
-except:
-    print('Checking for docutils... NO')
-    print('Error : Python package "docutils" is required.')
-    print('You can install it from: http://pypi.python.org/pypi/docutils')
-    exit(0)
-
-# pygments
-try:
-    import pygments
-    print('Checking for pygments... OK')
-except:
-    print('Checking for pygments... NO')
-    print('Warning : Python package "pygments" is not required but strongly advised to highlight code.')
-    print('You can install it from: http://pypi.python.org/pypi/pygments')
-
-# matplotlib
-try:
-    import matplotlib
-    print('Checking for matplotlib... OK')
-except:
-    print('Checking for matplotlib... NO')
-    print('Warning : Python package "matplotlin" is not required but strongly advised to plot figures.')
-    print('You can install it from: http://pypi.python.org/pypi/matplotlib')
-
-# Install the package
-from rst2reveal import __version__ as version
-setup(
-    name='rst2reveal',
-	version=version,
-	license='MIT',
-	platforms='GNU/Linux',
-	description='ReST to Reveal.js translator.',
-	long_description='ReST to Reveal.js translator.',
-	author='Julien Vitay',
-	author_email='julien.vitay@gmail.com',
-	url='https://bitbucket.org/vitay/rst2reveal',
-    packages=['rst2reveal'],
-    package_data={'reveal': ['reveal'], 'static': ['static']},
-    include_package_data=True,
-    entry_points = {
-        'console_scripts': [
-            'rst2reveal = rst2reveal.cli:main',
-        ]
-    },
- )
-
+#  try:
+#      import docutils
+#      print('Checking for docutils... OK')
+#  except:
+#      print('Checking for docutils... NO')
+#      print('Error : Python package "docutils" is required.')
+#      print('You can install it from: http://pypi.python.org/pypi/docutils')
+#      exit(0)
+#
+#  # pygments
+#  try:
+#      import pygments
+#      print('Checking for pygments... OK')
+#  except:
+#      print('Checking for pygments... NO')
+#      print('Warning : Python package "pygments" is not required but strongly advised to highlight code.')
+#      print('You can install it from: http://pypi.python.org/pypi/pygments')
+#
+#  # matplotlib
+#  try:
+#      import matplotlib
+#      print('Checking for matplotlib... OK')
+#  except:
+#      print('Checking for matplotlib... NO')
+#      print('Warning : Python package "matplotlin" is not required but strongly advised to plot figures.')
+#      print('You can install it from: http://pypi.python.org/pypi/matplotlib')
+#
+#  # Install the package
+#  from rst2reveal import __version__ as version
+#  setup(
+#      name='rst2reveal',
+#          version=version,
+#          license='MIT',
+#          platforms='GNU/Linux',
+#          description='ReST to Reveal.js translator.',
+#          long_description='ReST to Reveal.js translator.',
+#          author='Julien Vitay',
+#          author_email='julien.vitay@gmail.com',
+#          url='https://bitbucket.org/vitay/rst2reveal',
+#      packages=['rst2reveal'],
+#      package_data={'reveal': ['reveal'], 'static': ['static']},
+#      include_package_data=True,
+#      entry_points = {
+#          'console_scripts': [
+#              'rst2reveal = rst2reveal.cli:main',
+#          ]
+#      },
+#   )
+#
