@@ -553,10 +553,8 @@ Simply use the ``matplotlib`` directive and write the corresponding matplotlib c
 
         import numpy as np
         x = np.linspace(0, 10, 100)
-        ax.plot(x, np.sin(x) * np.exp(-0.1*(x-5)**2), 'b',
-                lw=3, label='damped sine')
-        ax.plot(x, -np.cos(x) * np.exp(-0.1*(x-5)**2), 'r',
-                lw=3, label='damped cosine')
+        ax.plot(x, np.sin(x) * np.exp(-0.1*(x-5)**2), 'b', lw=3, label='damped sine')
+        ax.plot(x, -np.cos(x) * np.exp(-0.1*(x-5)**2), 'r', lw=3, label='damped cosine')
         ax.set_title('check it out!')
         ax.set_xlabel('x label')
         ax.set_ylabel('y label')

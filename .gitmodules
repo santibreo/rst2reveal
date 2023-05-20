@@ -1,3 +1,4 @@
 [submodule "rst2reveal/reveal"]
 	path = rst2reveal/reveal
 	url = https://github.com/hakimel/reveal.js
+	branch = master
