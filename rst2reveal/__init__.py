@@ -41,8 +41,7 @@ except ImportError:
 
 # Check for matplotlib
 try:
-    from matplotlib import font_manager, rcParams
-    import matplotlib.pylab as plt
+    from matplotlib import font_manager
 
     HAS_MATPLOTLIB = True
     font_files = font_manager.findSystemFonts(
@@ -53,6 +52,4 @@ try:
 
 except ImportError:
     HAS_MATPLOTLIB = False
-    print(
-        "Warning: matplotlib is not installed on your system. Plots will not be generated."
-    )
+    print("Warning: Matplotlib is not installed. Plots will not be generated.")

@@ -12,7 +12,6 @@ from docutils import nodes
 
 
 def small_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
-
     node = nodes.inline(rawtext, text, **options)
     node["classes"] = ["small"]
     return [node], []
@@ -21,8 +20,8 @@ def small_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
 def vspace_role(role, rawtext, text, lineno, inliner, options={}, content=[]):
     try:
         nb_lines = int(text)
-    except:
-        print("Error in", rawtext, ": argument should be an integer.")
+    except ValueError:
+        print("Error in ", rawtext, ": argument should be an integer.")
         nb_lines = 0
     node = nodes.raw("", "<br>" * nb_lines, format="html")
     return [node], []

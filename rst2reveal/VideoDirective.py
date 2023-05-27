@@ -3,7 +3,10 @@ from docutils.parsers.rst import directives
 
 VIDEO_CODE = """\
             <div class="align-%(align)s">
-                <video style="text-align:%(align)s; float:%(align)s" width="%(width)s" %(autoplay)s %(loop)s %(controls)s>
+                <video
+                  style="text-align:%(align)s; float:%(align)s;"
+                  width="%(width)s" %(autoplay)s %(loop)s %(controls)s
+                >
                       <source src="%(filename)s" type="video/%(codec)s">
                       Your browser does not support the video tag.
                 </video>
@@ -19,7 +22,15 @@ VIDEO_CODECS = {
 
 
 def video_directive(
-    name, args, options, content, lineno, contentOffset, blockText, state, stateMachine
+    name,
+    args,
+    options,
+    content,
+    lineno,
+    contentOffset,
+    blockText,
+    state,
+    stateMachine,
 ):
     """Restructured text extension for inserting videos"""
     if len(content) == 0:
@@ -61,8 +72,9 @@ def video_directive(
         string_vars["autoplay"] = "autoplay"
     if "loop" in args.keys():
         string_vars["loop"] = "loop"
-    #    if 'controls' in args.keys(): # TODO: no controls by default, but still clickable
-    #        string_vars['controls'] = 'controls'
+    # TODO: no controls by default, but still clickable
+    #  if 'controls' in args.keys():
+    #      string_vars['controls'] = 'controls'
 
     return [nodes.raw("video", VIDEO_CODE % (string_vars), format="html")]
 

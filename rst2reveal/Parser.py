@@ -1,8 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 try:
     import locale
 
     locale.setlocale(locale.LC_ALL, "")
-except:
+except ImportError:
     pass
 
 import os
@@ -13,7 +16,7 @@ import docutils.core
 from pathlib import Path
 from datetime import datetime
 from xml.etree import ElementTree
-from typing import Generator, Optional
+from typing import Optional
 
 from .RevealTranslator import RST2RevealTranslator, RST2RevealWriter
 
@@ -25,6 +28,8 @@ from . import (
     STATIC_CSS_PATH,
     STATIC_TMP_PATH,
 )
+
+# TODO: Make clean imports and not these
 from .VideoDirective import *
 from .directives import *
 from .roles import *
@@ -330,7 +335,7 @@ class Parser:
                     " " * 8 + '<section class="titleslide">',
                     " " * 10 + f'<h1>{self.meta_info["title"]}</h1>',
                     " " * 10 + f'<h3>{self.meta_info["subtitle"]}</h3>',
-                    " " * 10 + f"<br>",
+                    " " * 10 + "<br>",
                 ]
                 + [
                     " " * 10 + author_to_link(x, y)
@@ -346,9 +351,7 @@ class Parser:
         self.footer_template = """<b>%(title)s %(is_subtitle)s %(subtitle)s.</b> %(author)s%(is_institution)s %(institution)s. %(date)s"""
 
     def _generate_header(self):
-        rst2reveal_css = (
-            f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
-        )
+        rst2reveal_css = f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
         pygments_css = (
             f'<link rel="stylesheet" href="{self.pygments_href}">'
             if PYGMENTS_STYLES
@@ -367,8 +370,7 @@ class Parser:
                     " " * 2 + "<head>",
                     " " * 4 + '<meta charset="utf-8">',
                     " " * 4 + f"<title>{self.title}</title>",
-                    " " * 4
-                    + f'<meta name="description" content="{self.title}">',
+                    " " * 4 + f'<meta name="description" content="{self.title}">',
                 ]
                 + [" " * 4 + x for x in self.parts["meta"].splitlines()]
                 + [
@@ -399,8 +401,7 @@ class Parser:
             "\n".join(
                 (
                     " " * 4 + '<script src="reveal/dist/reveal.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/zoom/zoom.js"></script>',
+                    " " * 4 + '<script src="reveal/plugin/zoom/zoom.js"></script>',
                     " " * 4
                     + '<script src="reveal/plugin/notes/notes.js"></script>',
                     " " * 4
@@ -409,8 +410,7 @@ class Parser:
                     + '<script src="reveal/plugin/markdown/markdown.js"></script>',
                     " " * 4
                     + '<script src="reveal/plugin/highlight/highlight.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/math/math.js"></script>',
+                    " " * 4 + '<script src="reveal/plugin/math/math.js"></script>',
                     " " * 4 + "<script>",
                     " " * 6 + "Reveal.initialize({",
                     " " * 8 + f"controls: {json.dumps(not self.no_controls)},",
@@ -436,8 +436,7 @@ class Parser:
                     " " * 10 + "TeX: {",
                     " " * 12 + "Macros: {",
                     " " * 14 + "R: '\\mathbb{R}',",
-                    " " * 16
-                    + "set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]",
+                    " " * 16 + "set: [ '\\left\\{#1 \\; ; \\; #2\\right\\}', 2 ]",
                     " " * 14 + "}",
                     " " * 12 + "}",
                     " " * 10 + "},",

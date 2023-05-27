@@ -18,7 +18,7 @@ from .transforms import HTMLAttributeTransform
 
 
 if HAS_MATPLOTLIB:
-    from . import plt
+    import matplotlib.pylab as plt
 
     NFIGS_CREATED = 0
 
@@ -37,7 +37,6 @@ def zero_to_one(argument: str) -> int:
 
 
 class CodeBlockDirective(CodeBlock):
-    #  {{{
     """
     Block of language-specific code. It is parsed using Pygments.
 
@@ -46,6 +45,7 @@ class CodeBlockDirective(CodeBlock):
 
     TODO: Use Reveal.js to highlight code and its capabilities to navigate it.
     """
+
     option_spec = CodeBlock.option_spec.copy()
     option_spec["linenos"] = directives.flag
 
@@ -55,14 +55,12 @@ class CodeBlockDirective(CodeBlock):
             self.options["number-lines"] = None
         return super().run()
 
-    #  }}}
-
 
 class ColumnDirective(Container):
-    #  {{{
     """
     Allows 2-columns layout. Strongly based on ``container`` directive.
     """
+
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
@@ -81,11 +79,8 @@ class ColumnDirective(Container):
         node.__class__.__name__ = "column"
         return [node]
 
-    #  }}}
-
 
 class HTMLAttributeDirective(Directive):
-    #  {{{
     """
     Set additional attributes on the next element. A "pending" element is
     inserted, and a transform does the work later. Strongly based on class
@@ -120,16 +115,14 @@ class HTMLAttributeDirective(Directive):
         node_list.append(pending)
         return node_list
 
-    #  }}}
-
 
 class MatplotlibDirective(Image):
-    #  {{{
     """
     Allow creation of SVG plots on the fly using `matplotlib\
     <https://matplotlib.org/>`_ capabilities. Only ``numpy`` and ``pandas`` are
     allowed to be imported.
     """
+
     required_arguments: int = 0
     optional_arguments: int = 10
     final_argument_whitespace: bool = True
@@ -137,11 +130,12 @@ class MatplotlibDirective(Image):
     option_spec["name"] = filename
     option_spec["alpha"] = zero_to_one
     option_spec["xkcd"] = directives.flag
+    option_spec["rows"] = int
+    option_spec["cols"] = int
     has_content: bool = True
 
     @property
     def temporary_filepath(self) -> str:
-        #  {{{
         """Path to temporary SVG file to save plot"""
         if not (fname := self.options.pop("name", "")):
             global NFIGS_CREATED
@@ -150,12 +144,10 @@ class MatplotlibDirective(Image):
         else:
             filepath = Path(STATIC_TMP_PATH / fname)
         return os.path.realpath(filepath.with_suffix(".svg"))
-        #  }}}
 
     def save_plot(
         self, code_as_text: str, fig: "plt.Figure", ax: "plt.Axes", alpha: float
     ) -> Union[Path, Literal[""]]:
-        #  {{{
         """Saves plot defined from matplotlib code chunk"""
         unsafe_pattern = re.compile(r"\bimport\b (?!(numpy|pandas))")
         if re.search(unsafe_pattern, code_as_text):
@@ -178,10 +170,8 @@ class MatplotlibDirective(Image):
         fig_path = self.temporary_filepath
         fig.savefig(fig_path, dpi=600, transparent=True)
         return Path(fig_path)
-        #  }}}
 
     def run(self):
-        #  {{{
         # Raise an error if the directive does not have contents.
         self.assert_has_content()
         if not HAS_MATPLOTLIB:
@@ -189,14 +179,16 @@ class MatplotlibDirective(Image):
         code = "\n".join(self.content)
         alpha = self.options.pop("alpha", 0)
         xkcd = self.options.pop("xkcd", "") is None
+        n_rows = self.options.pop("rows", 1)
+        n_cols = self.options.pop("rows", 1)
         if xkcd:
             fig_path = ""
             with plt.xkcd(1):
-                fig, ax = plt.subplots()
-                fig_path = self.save_plot(code, fig, ax, alpha)
+                fig, axes = plt.subplots(n_rows, n_cols)
+                fig_path = self.save_plot(code, fig, axes, alpha)
         else:
-            fig, ax = plt.subplots()
-            fig_path = self.save_plot(code, fig, ax, alpha)
+            fig, axes = plt.subplots(n_rows, n_cols)
+            fig_path = self.save_plot(code, fig, axes, alpha)
         # Insert image as svg
         if not fig_path:
             return []
@@ -208,9 +200,6 @@ class MatplotlibDirective(Image):
         node = super().run()[0]
         node.attributes["classes"].append("matplotlib-container")
         return [node]
-        #  }}}
-
-    #  }}}
 
 
 # Register nodes and directives

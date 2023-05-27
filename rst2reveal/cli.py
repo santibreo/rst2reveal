@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from __future__ import annotations
 import sys
 from argparse import ArgumentParser
@@ -106,9 +108,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"Creating the configuration file {input_file!s}.")
         config = ConfigParser.RawConfigParser()
         config.add_section("rst2reveal")
-        config.set(
-            "rst2reveal", "input_file", str(input_file.with_suffix(".rst"))
-        )
+        config.set("rst2reveal", "input_file", str(input_file.with_suffix(".rst")))
         config.set("rst2reveal", "theme", args.theme)
         config.set("rst2reveal", "custom_css", args.custom_css)
         config.set("rst2reveal", "transition", args.transition)

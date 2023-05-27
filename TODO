@@ -18,4 +18,5 @@ Works:
 
 TODO:
 
-* other math interpreter than mathjs
+* Make backgrounds usable
+* Use jinja templates (instead of raw HTML)
