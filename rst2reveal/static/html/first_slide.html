@@ -1,0 +1,17 @@
+{% extends presentation.html %}
+<section class="titleslide">
+    <h1>{{ title }}</h1>
+    <h3>{{ subtitle }}</h3>
+    <br>
+    {% for author_name, author_email in authors %}
+    <p>
+    {% if author_email %}
+    <a href="mailto:{{ author_email }}">{{ author_name }} </a>
+    {% else %}
+    {{ author_name }}
+    {% endif %}
+    </p>
+    {% endfor %}
+    <p>{{ date }}</p>
+</section>
+

@@ -28,6 +28,21 @@
     text-align: left;
 }
 
+header.section-header,
+footer.section-footer {
+    min-width: 100%;
+    min-height: 2em;
+    position: fixed;
+    left: 0;
+}
+header.section-header {
+    top: 0;
+}
+
+footer.section-footer {
+    bottom: 0;
+}
+
 
 /*********************************************
  * SMALL
@@ -69,6 +84,7 @@ blockquote.epigraph > p{
     margin-block: 0px;
 }
 
+
 /*********************************************
  * TWO COLUMNS
  *********************************************/
@@ -84,10 +100,10 @@ blockquote.epigraph > p{
     float: right;
 }
 
+
 /*********************************************
  * IMAGES
  *********************************************/
-
 .align-center,
 .reveal img.align-center {
     text-align: center;
@@ -148,11 +164,12 @@ pre.literal-block::-webkit-scrollbar-thumb {
 
 .reveal pre {
     box-shadow: unset;
-    font-size: 0.67em;
+    font-size: 0.8em;
 }
 
 tt.docutils.literal {
     background: rgba(0,0,0,0.1);
+    font-size: 0.8em;
     /*
     border-radius: 5px;
     padding-inline: 3px;

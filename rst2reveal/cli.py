@@ -2,13 +2,33 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
+
 import sys
+import logging
 from argparse import ArgumentParser
 import configparser as ConfigParser
 from pathlib import Path
 from .Parser import Parser
 from . import PYGMENTS_STYLES, REVEAL_THEMES, REVEAL_TRANSITIONS
 from typing import Optional, Sequence, Union
+
+
+# Logging configuration
+logger = logging.getLogger("rst2reveal")
+logger.setLevel(logging.DEBUG)
+log_format = "%(asctime)s | %(name)s | %(levelname)s > %(message)s"
+# Handler
+stream_handler: logging.StreamHandler = logging.StreamHandler(sys.stderr)
+stream_handler.setFormatter(
+    logging.Formatter(log_format, datefmt="%Y-%m-%d %H:%M:%S")
+)
+stream_handler.setLevel(logging.INFO)
+logger.addHandler(stream_handler)
+
+# Warnings
+logging.captureWarnings(True)
+py_warnings_logger = logging.getLogger("py.warnings")
+py_warnings_logger.addHandler(stream_handler)
 
 
 def is_config_file(filepath: Path) -> bool:
@@ -99,13 +119,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
     input_file = Path(args.input_file)
     if input_file.exists() and not input_file.is_file():
-        print(f"ERROR: {input_file!s} is not a valid file", file=sys.stderr)
+        logger.error(f"{input_file!s} is not a valid file")
         return 1
     # Create configuration file if needed {{{
     if not is_config_file(input_file) and has_config_file(input_file) is None:
         # Copy default config file to given location
         input_file = input_file.with_suffix(".conf")
-        print(f"Creating the configuration file {input_file!s}.")
+        logger.info(f"Creating configuration file {input_file!s}.")
         config = ConfigParser.RawConfigParser()
         config.add_section("rst2reveal")
         config.set("rst2reveal", "input_file", str(input_file.with_suffix(".rst")))
@@ -144,23 +164,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         config.write(input_file.open("w", encoding="latin-1"))
     elif not is_config_file(input_file):
         input_file = has_config_file(input_file)
-    #  }}}
-    # Read configuration file {{{
-    print(f"Reading from the configuration file {input_file!s}.")
+    # Read configuration file
+    logger.info(f"Reading from the configuration file {input_file!s}.")
     config_parser = ConfigParser.RawConfigParser()
     config_parser.read(input_file)
     config_args = config_parser["rst2reveal"]
     input_filename = config_args.pop("input_file", "")
     # Not valid input_filename
     if not input_filename.endswith(".rst") or Path(input_filename).parent.name:
-        print(
-            f"ERROR: {input_filename!s} is not a valid RST file",
-            file=sys.stderr,
-        )
+        logger.error(f"{input_filename!s} is not a valid RST file")
         return 1
     input_file = input_file.with_name(input_filename)
     if not input_file.exists():
-        print(f"ERROR: {input_filename!s} does not exists", file=sys.stderr)
+        logger.error(f"{input_filename!s} does not exists")
+        return 1
     # Incorporate config values to args
     for key, value in config_args.items():
         if key in parser_boolean_arguments:
@@ -168,7 +185,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         else:
             setattr(args, key, value)
 
-    #  }}}
     del args.input_file
     # Create the RST parser and create the slides
     parser = Parser(
@@ -177,7 +193,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         **vars(args),
     )
     parser.create_slides()
-    print(f"The output is in:\n\t {Path(parser.output_file)}")
+    logger.info(f"The output is in: {Path(parser.output_file)}")
     return 0
 
 

@@ -121,22 +121,27 @@ class RST2RevealTranslator(HTMLTranslator):
         if self.section_level == 0:
             # Open new section
             self.body.append(" " * 8 + f"<section{class_str}{attr_str}>\n")
+            self.body.append(" " * 10 + '<header class="section-header"></header>\n')
         elif self.section_level == 1 and not self.is_subsection_previous:
             # First subsection needs to be closed at subsection opening
             self.is_subsection_previous = True
+            self.body.append(" " * 12 + '<footer class="section-footer"></footer>\n')
             self.body.append(" " * 10 + "</section>\n")
         # Open new subsection
         self.body.append(" " * 10 + f"<section{class_str}{attr_str}>\n")
+        self.body.append(" " * 12 + '<header class="section-header"></header>\n')
         self.section_level += 1
 
     def depart_section(self, node) -> None:
         # When section has subsections, subsection tag is closed at depart
         if not (self.section_level == 1 and self.is_subsection_previous):
             # Close subsection
+            self.body.append(" " * 12 + '<footer class="section-footer"></footer>\n')
             self.body.append(" " * 10 + "</section>\n")
         if self.section_level == 1:
             # Close section
             self.is_subsection_previous = False
+            self.body.append(" " * 10 + '<footer class="section-footer"></footer>\n')
             self.body.append(" " * 8 + "</section>\n")
         self.section_level -= 1
         self.inline_lists = False

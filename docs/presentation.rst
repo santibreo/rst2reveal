@@ -502,20 +502,18 @@ Videos
 Incremental display
 ===================
 
-You can incrementally display the content of your slide by using the ``fragment`` class:
+You can incrementally display the content of your slide by using the ``fragment`` class:\ ::
+
+    .. class:: fragment
+
+        * Items will be displayed in the order of their declaration.
+
+        * It applies until the end of the slides.
+
 
 .. class:: fragment
 
-    ::
-
-        .. class:: fragment
-
-            * Items will be displayed in the order of their declaration.
-
-            * It applies until the end of the slides.
-
     * Items will be displayed in the order of their declaration.
-
     * It applies until the end of the current slide.
 
 

@@ -101,11 +101,6 @@ def author_to_link(author: str, email: str = ""):
 
 
 class Parser:
-    """
-    Class converting a stand-alone reST file into a Reveal.js-powered HTML5
-    file, using the provided options.
-    """
-
     def __init__(
         self,
         input_file: Path,
@@ -120,63 +115,28 @@ class Parser:
         slidenos: bool = False,
         no_controls: bool = False,
         no_progress: bool = False,
+        **templates_kwargs: str,
     ):
-        """
-        Constructor of the Parser class.
-
-        ``create_slides()`` must then be called to actually produce the presentation.
+        R"""Class converting a stand-alone reST file into a Reveal.js-powered
+        HTML5 presentation, using provided options.
 
         Arguments:
 
-            * input_file : name of the reST file to be processed (obligatory).
-
-            * output_file: name of the HTML file to be generated (default: same as input_file, but with a .html extension).
-
-            * theme: the name of the theme to be used ({**default**, beige, night}).
-
-            * transition: the transition between slides ({**default**, cube, page, concave, zoom, linear, fade, none}).
-            * stylesheet: a custom CSS file which extends or replaces the used theme.
-
-            * mathjax_path: URL or path to the MathJax library (default: http://cdn.mathjax.org/mathjax/latest/MathJax.js).
-            * pygments_style: the style to be used for syntax color-highlighting using Pygments. The list depends on your Pygments version, type::
-
-                from pygments.styles import STYLE_MAP
-                print STYLE_MAP.keys()
-
-            * vertical_center: boolean stating if the slide content should be vertically centered (default: False).
-
-            * horizontal_center: boolean stating if the slide content should be horizontally centered (default: False).
-
-            * title_center: boolean stating if the title of each slide should be horizontally centered (default: False).
-
-            * footer: boolean stating if the footer line should be displayed (default: False).
-
-            * page_number: boolean stating if the slide number should be displayed (default: False).
-
-            * no_controls: boolean stating if the control arrows should be displayed (default: False).
-
-            * firstslide_template: template string defining how the first slide will be rendered in HTML.
-
-            * footer_template: template string defining how the footer will be rendered in HTML.
-
-        The ``firstslide_template`` and ``footer_template`` can use the following substitution variables:
-
-            * %(title)s : will be replaced by the title of the presentation.
-
-            * %(subtitle)s : subtitle of the presentation (either a level-2 header or the :subtitle: field, if any).
-            * %(author)s : :author: field (if any).
-
-            * %(institution)s : :institution: field (if any).
-
-            * %(email)s : :email: field (if any).
-
-            * %(date)s : :date: field (if any).
-
-            * %(is_author)s : the '.' character if the :author: field is defined, '' otherwise.
-
-            * %(is_subtitle)s : the '-' character if the subtitle is defined, '' otherwise.
-
-            * %(is_institution)s : the '-' character if the :institution: field is defined, '' otherwise.
+            - input_file : Name of the reST file to be processed.
+            - output_file: Name of the HTML file to be generated. Defaults to
+            -   given ``input_file`` with suffix ``.html``.
+            - transition: The transition between slides. Defaults to 'linear'.
+            - custom_css: Custom CSS file which extends or replaces the used theme.
+            - pygments_style: The style to be used for syntax color-highlighting.
+            -   Defaults to 'default'.
+            - header: Flag indicating if fixed header section must be
+            -   incorporated to slides.
+            - header: Flag indicating if fixed footer section must be
+            -   incorporated to slides.
+            - slidenos: Flag indicating if number of the slide must be shown.
+            - no_controls: Flag indicating if slide controls must not be displayed.
+            - no_progress: Flag indicating if progress bar must not be displayed.
+            - \*\*templates_kwargs: Keyword arguments used in templates.
 
         You can also use your own fields in the templates.
 
@@ -198,9 +158,9 @@ class Parser:
         self.theme = theme
         self.custom_css = custom_css
         self.transition = transition
-        self.slidenos = slidenos
-        self.no_controls = no_controls
-        self.no_progress = no_progress
+        self.slidenos = "'c/t'" if slidenos else "false"
+        self.controls = json.dumps(not no_controls)
+        self.progress = json.dumps(not no_progress)
         # Pygments
         self.pygments_style = pygments_style
 
@@ -227,16 +187,35 @@ class Parser:
         self._produce_output()
         # Copy generated temporary files
         self._copy_temporary()
+        # Make it reveal-compatible
+        shutil.move(self.output_file, self.output_file.parent / "reveal" / "index.html")
+        shutil.copytree(self.static_path, self.output_file.parent / "reveal" / "static")
+        shutil.rmtree(
+            self.output_file.parent / self.output_file.stem, ignore_errors=True
+        )
+        shutil.move(
+            self.output_file.parent / "reveal",
+            self.output_file.parent / self.output_file.stem,
+        )
 
     def _copy_reveal(self):
-        #  {{{
         # Copy the reveal subfolder
+        shutil.rmtree(self.output_file.parent / "reveal", ignore_errors=True)
         shutil.copytree(
             os.path.realpath(REVEAL_PATH),
             self.output_file.parent / "reveal",
-            dirs_exist_ok=True,
         )
-        #  }}}
+        # Delete unecessary directories
+        shutil.rmtree(self.output_file.parent / "reveal" / "test")
+        shutil.rmtree(self.output_file.parent / "reveal" / ".github")
+        shutil.rmtree(self.output_file.parent / "reveal" / "examples")
+        # Delete unecessary files
+        os.remove(self.output_file.parent / "reveal" / ".git")
+        os.remove(self.output_file.parent / "reveal" / ".gitignore")
+        os.remove(self.output_file.parent / "reveal" / "demo.html")
+        os.remove(self.output_file.parent / "reveal" / "index.html")
+        os.remove(self.output_file.parent / "reveal" / "LICENSE")
+        os.remove(self.output_file.parent / "reveal" / "README.md")
 
     def _copy_static(self):
         #  {{{
@@ -281,16 +260,12 @@ class Parser:
         #  }}}
 
     def _copy_temporary(self):
-        #  {{{
-        """
-        Copy static files to destination folder
-        """
+        """Copy temporary files to destination folder"""
         # Copy generated images
         for img in STATIC_TMP_PATH.glob("*.svg"):
             if img.stat().st_size != 0:
                 shutil.copy2(img, self.static_img_path / img.name)
             img.unlink()
-        #  }}}
 
     def _produce_output(self):
         self.title = self.parts["title"]
@@ -322,9 +297,7 @@ class Parser:
 
     def _generate_titleslide(self):
         # Separators
-        self.meta_info["is_author"] = (
-            "." if self.meta_info.get("author") != "" else ""
-        )
+        self.meta_info["is_author"] = "." if self.meta_info.get("author") != "" else ""
         self.meta_info["is_subtitle"] = (
             "." if self.meta_info.get("subtitle") != "" else ""
         )
@@ -351,14 +324,16 @@ class Parser:
         self.footer_template = """<b>%(title)s %(is_subtitle)s %(subtitle)s.</b> %(author)s%(is_institution)s %(institution)s. %(date)s"""
 
     def _generate_header(self):
-        rst2reveal_css = f'<link rel="stylesheet" href="{self.rst2reveal_href}">'
+        rst2reveal_css = (
+            f'<link rel="stylesheet" type="text/css" href="{self.rst2reveal_href}">'
+        )
         pygments_css = (
-            f'<link rel="stylesheet" href="{self.pygments_href}">'
+            f'<link rel="stylesheet" type="text/css" href="{self.pygments_href}">'
             if PYGMENTS_STYLES
             else ""
         )
         custom_css = (
-            f'<link rel="stylesheet" href="{self.custom_css_href}">'
+            f'<link rel="stylesheet" type="text/css" href="{self.custom_css_href}">'
             if self.custom_css
             else ""
         )
@@ -380,12 +355,11 @@ class Parser:
                     + '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
                     " " * 4
                     + '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no">',
+                    " " * 4 + '<link rel="stylesheet" href="dist/reveal.css">',
                     " " * 4
-                    + '<link rel="stylesheet" href="reveal/dist/reveal.css">',
+                    + f'<link rel="stylesheet" href="dist/theme/{self.theme}.css" id="theme">',
                     " " * 4
-                    + f'<link rel="stylesheet" href="reveal/dist/theme/{self.theme}.css" id="theme">',
-                    " " * 4
-                    + '<link rel="stylesheet" href="reveal/css/print/pdf.css" type="text/css" media="print">',
+                    + '<link rel="stylesheet" href="css/print/pdf.css" type="text/css" media="print">',
                     " " * 4 + f"{pygments_css}",
                     " " * 4 + f"{rst2reveal_css}",
                     " " * 4 + "<!-- Extra styles -->",
@@ -400,21 +374,18 @@ class Parser:
         return (
             "\n".join(
                 (
-                    " " * 4 + '<script src="reveal/dist/reveal.js"></script>',
-                    " " * 4 + '<script src="reveal/plugin/zoom/zoom.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/notes/notes.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/search/search.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/markdown/markdown.js"></script>',
-                    " " * 4
-                    + '<script src="reveal/plugin/highlight/highlight.js"></script>',
-                    " " * 4 + '<script src="reveal/plugin/math/math.js"></script>',
+                    " " * 4 + '<script src="dist/reveal.js"></script>',
+                    " " * 4 + '<script src="plugin/zoom/zoom.js"></script>',
+                    " " * 4 + '<script src="plugin/notes/notes.js"></script>',
+                    " " * 4 + '<script src="plugin/search/search.js"></script>',
+                    " " * 4 + '<script src="plugin/markdown/markdown.js"></script>',
+                    " " * 4 + '<script src="plugin/highlight/highlight.js"></script>',
+                    " " * 4 + '<script src="plugin/math/math.js"></script>',
                     " " * 4 + "<script>",
                     " " * 6 + "Reveal.initialize({",
-                    " " * 8 + f"controls: {json.dumps(not self.no_controls)},",
-                    " " * 8 + f"progress: {json.dumps(not self.no_progress)},",
+                    " " * 8 + f"controls: {self.controls},",
+                    " " * 8 + f"progress: {self.progress},",
+                    " " * 8 + f"slideNumber: {self.slidenos},",
                     " " * 8 + f"transition: {self.transition!r},",
                     " " * 8 + "history: true,",
                     " " * 8 + "overview: true,",
@@ -424,11 +395,12 @@ class Parser:
                     " " * 8 + "rtl: false,",
                     " " * 8 + "hash: true,",
                     " " * 8 + "backgroundTransition: 'convex',",
+                    " " * 8 + "pdfSeparateFragments: false,",
                     " " * 8 + "center: true,",
                     " " * 8 + "mouseWheel: false,",
                     " " * 8 + "fragments: true,",
                     " " * 8 + "rollingLinks: false,",
-                    #' '*8  + 'highlight: {highlightOnLoad: false},',
+                    " " * 8 + "highlight: {highlightOnLoad: false},",
                     " " * 8 + "math: {",
                     " " * 10
                     + "// mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js',",
@@ -440,19 +412,13 @@ class Parser:
                     " " * 14 + "}",
                     " " * 12 + "}",
                     " " * 10 + "},",
-                    " " * 10
-                    + "// Learn about plugins: https://revealjs.com/plugins/",
+                    " " * 10 + "// Learn about plugins: https://revealjs.com/plugins/",
                     " " * 10
                     + "plugins: [ RevealMath, RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]",
-                    " " * 10
-                    + "// Full list of configuration options available here:",
-                    " " * 10
-                    + "// https://github.com/hakimel/reveal.js#configuration",
+                    " " * 10 + "// Full list of configuration options available here:",
+                    " " * 10 + "// https://github.com/hakimel/reveal.js#configuration",
                     " " * 8 + "}",
                     " " * 6 + ");",
-                    " " * 6 + "Reveal.initialize({ slideNumber: 'c/t' });"
-                    if self.slidenos
-                    else "",
                     " " * 4 + "</script>",
                     " " * 2 + "</body>",
                     "</html>",
