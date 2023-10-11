@@ -1,0 +1,51 @@
+ /* Header ----------------------------------------------------------------- */
+
+header.section-header {
+  background-image: url('../img/energyworx-logo.png');
+  background-repeat: no-repeat;
+  background-position: right;
+  background-size: 6.7em;
+  border-bottom: 1px solid var(--r-selection-background-color);
+  top: -15px;
+}
+
+header.section-header::before {
+  content: 'Automated tests, by Standard project team';
+  font-size: 0.67em;
+  font-style: italic;
+  position: relative;
+  vertical-align: sub;
+}
+
+section.present {
+  margin-top: 15px;
+}
+
+.admonition:before {
+  position: absolute;
+  bottom: 70%;
+  left: -20px;
+  font-size: 1.7rem;
+  line-height: 1em;
+  border-radius: 50%;
+  padding-block: 2px;
+  padding-inline: 4px;
+  color: var(--r-background-color);
+}
+
+.admonition {
+  margin-top: 1.2rem;
+}
+
+.reveal pre{
+  width: unset;
+}
+
+html.print-pdf header.section-header {
+  display: none;
+}
+
+:root {
+  --r-main-font-size: 1.22rem;
+  --r-block-margin: 0.1rem;
+}
